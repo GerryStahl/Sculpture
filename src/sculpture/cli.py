@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -9,6 +10,10 @@ import typer
 from rich import print as rprint
 
 app = typer.Typer(help="Sculpture image → 3-D wireframe pipeline.")
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
 
 
 @app.command()
@@ -55,6 +60,31 @@ def preprocess_only(
         save_image(out[:, :, :3] if out.ndim == 3 and out.shape[2] == 4 else out,
                    save_path)
         rprint(f"  Saved [cyan]{save_path}[/cyan]")
+
+
+@app.command()
+def playground(
+    viewer: bool = typer.Option(
+        False,
+        "--viewer",
+        help="Open the exported HTML viewer instead of the notebook.",
+    ),
+) -> None:
+    """Launch the sculpture playground quickly.
+
+    By default this opens the interactive notebook.
+    Use --viewer to open the exported HTML preview if it already exists.
+    """
+    notebook_path = _project_root() / "notebooks" / "02_playground.ipynb"
+    viewer_path = _project_root() / "data" / "output" / "renders" / "sculpture_playground_export.html"
+
+    target = viewer_path if viewer else notebook_path
+    if viewer and not target.exists():
+        rprint("[yellow]No exported HTML viewer found yet; opening the notebook instead.[/yellow]")
+        target = notebook_path
+
+    rprint(f"[bold green]Opening:[/bold green] {target}")
+    subprocess.run(["open", str(target)], check=False)
 
 
 if __name__ == "__main__":

@@ -193,6 +193,13 @@ sculpture run --photos photos/emergent4_frames
 sculpture preprocess-only photos/emergent4_frames --output data/processed
 ```
 
+#### Open the Playground
+```bash
+sculpture playground
+```
+
+Use `sculpture playground --viewer` to open the exported HTML viewer once you have saved a modified model.
+
 #### With Custom Config
 ```bash
 sculpture run --config config/custom.yaml --photos photos/
