@@ -1,0 +1,2 @@
+[console_scripts]
+sculpture = sculpture.cli:app

@@ -1,0 +1,54 @@
+# ──────────────────────────────────────────────
+# Sculpture Pipeline – default configuration
+# ──────────────────────────────────────────────
+
+paths:
+  photos_dir: photos/
+  data_raw: data/raw/
+  data_processed: data/processed/
+  calibration_dir: data/calibration/
+  output_dir: data/output/
+
+preprocessing:
+  # Target longest edge (pixels); 0 = no resize
+  max_size: 2048
+  # Background removal model: "rembg" | "grabcut" | "none"
+  bg_removal: rembg
+  # Gaussian denoising kernel size (0 = skip)
+  denoise_ksize: 0
+
+calibration:
+  # Checkerboard inner corners
+  board_cols: 9
+  board_rows: 6
+  square_size_mm: 25.0
+  # Use stored calibration file if present
+  calib_file: data/calibration/camera_intrinsics.json
+
+reconstruction:
+  # "colmap" | "opencv_sfm" | "open3d"
+  method: open3d
+  colmap_bin: colmap
+  # NeRF / depth-anything integration (future)
+  use_depth_prior: false
+
+meshing:
+  # "ball_pivot" | "poisson" | "alpha_shape"
+  method: poisson
+  poisson_depth: 9
+  # Remove components smaller than this fraction of the largest
+  min_component_frac: 0.01
+  # Target face count after simplification (0 = skip)
+  simplify_faces: 50000
+
+wireframe:
+  # Dihedral angle threshold (deg) to detect feature edges
+  feature_angle_deg: 30.0
+  # Minimum edge length fraction of bounding-box diagonal
+  min_edge_frac: 0.005
+  # Export format: "obj" | "svg" | "json_graph"
+  export_format: obj
+
+logging:
+  level: INFO
+  file: data/output/pipeline.log

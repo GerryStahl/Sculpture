@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sculpture"
+version = "0.1.0"
+description = "Analyze sculpture images and generate 3-D wireframe models."
+requires-python = ">=3.11"
+dependencies = [
+  # Image processing
+  "opencv-python>=4.10",
+  "Pillow>=10.4",
+  "pillow-heif>=0.18",        # HEIC/HEIF support
+  "scikit-image>=0.24",
+  "imageio>=2.36",
+  # Numerical / scientific
+  "numpy>=1.26",
+  "scipy>=1.14",
+  # Deep learning (background removal / feature detection)
+  "torch>=2.3",
+  "torchvision>=0.18",
+  # 3-D geometry
+  "open3d>=0.18",
+  "trimesh>=4.4",
+  "networkx>=3.3",            # Wireframe graph
+  # Config & CLI
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "PyYAML>=6.0",
+  "typer[all]>=0.12",
+  "rich>=13.8",
+  # Experiment tracking
+  "mlflow>=2.15",
+  # Plotting / viz
+  "matplotlib>=3.9",
+  "plotly>=5.23",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-cov>=5",
+  "ruff>=0.6",
+  "mypy>=1.11",
+]
+
+[project.scripts]
+sculpture = "sculpture.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

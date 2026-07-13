@@ -1,0 +1,30 @@
+Metadata-Version: 2.4
+Name: sculpture
+Version: 0.1.0
+Summary: Analyze sculpture images and generate 3-D wireframe models.
+Requires-Python: >=3.11
+Requires-Dist: opencv-python>=4.10
+Requires-Dist: Pillow>=10.4
+Requires-Dist: pillow-heif>=0.18
+Requires-Dist: scikit-image>=0.24
+Requires-Dist: imageio>=2.36
+Requires-Dist: numpy>=1.26
+Requires-Dist: scipy>=1.14
+Requires-Dist: torch>=2.3
+Requires-Dist: torchvision>=0.18
+Requires-Dist: open3d>=0.18
+Requires-Dist: trimesh>=4.4
+Requires-Dist: networkx>=3.3
+Requires-Dist: pydantic>=2.8
+Requires-Dist: pydantic-settings>=2.4
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: typer[all]>=0.12
+Requires-Dist: rich>=13.8
+Requires-Dist: mlflow>=2.15
+Requires-Dist: matplotlib>=3.9
+Requires-Dist: plotly>=5.23
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: pytest-cov>=5; extra == "dev"
+Requires-Dist: ruff>=0.6; extra == "dev"
+Requires-Dist: mypy>=1.11; extra == "dev"
