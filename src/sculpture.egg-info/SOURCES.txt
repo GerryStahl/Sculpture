@@ -6,6 +6,7 @@ src/sculpture/cli.py
 src/sculpture/config.py
 src/sculpture/meshing.py
 src/sculpture/pipeline.py
+src/sculpture/playground.py
 src/sculpture/preprocessing.py
 src/sculpture/reconstruction.py
 src/sculpture/wireframe.py

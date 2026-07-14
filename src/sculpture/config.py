@@ -20,7 +20,7 @@ class PathsConfig(BaseModel):
 
 class PreprocessingConfig(BaseModel):
     max_size: int = 2048
-    bg_removal: Literal["rembg", "grabcut", "none"] = "rembg"
+    bg_removal: Literal["apple_vision", "rembg", "grabcut", "none"] = "apple_vision"
     denoise_ksize: int = 0
 
 

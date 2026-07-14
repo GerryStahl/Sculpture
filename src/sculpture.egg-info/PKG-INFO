@@ -20,6 +20,7 @@ Requires-Dist: pydantic-settings>=2.4
 Requires-Dist: PyYAML>=6.0
 Requires-Dist: typer[all]>=0.12
 Requires-Dist: rich>=13.8
+Requires-Dist: ipywidgets>=8.1
 Requires-Dist: mlflow>=2.15
 Requires-Dist: matplotlib>=3.9
 Requires-Dist: plotly>=5.23

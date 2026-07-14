@@ -100,7 +100,13 @@ def reconstruct_open3d(
     pcd = pcd.voxel_down_sample(voxel_size=0.005)
     pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(
         radius=0.02, max_nn=30))
-    pcd.orient_normals_consistent_tangent_plane(10)
+    try:
+        pcd.orient_normals_consistent_tangent_plane(10)
+    except RuntimeError as exc:
+        logger.warning(
+            "Normal orientation fallback triggered (%s). Continuing with estimated normals.",
+            exc,
+        )
 
     out_path = output_dir / "point_cloud.ply"
     o3d.io.write_point_cloud(str(out_path), pcd)

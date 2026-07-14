@@ -13,7 +13,7 @@ preprocessing:
   # Target longest edge (pixels); 0 = no resize
   max_size: 2048
   # Background removal model: "rembg" | "grabcut" | "none"
-  bg_removal: rembg
+  bg_removal: apple_vision
   # Gaussian denoising kernel size (0 = skip)
   denoise_ksize: 0
 

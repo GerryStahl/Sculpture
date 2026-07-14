@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import logging
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 
 import cv2
 import numpy as np
 
 from sculpture.config import PreprocessingConfig
+
+_MASK_TOOL = Path(__file__).resolve().parents[3] / "tools" / "mask_subject" / "mask_subject"
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +57,36 @@ def remove_background_grabcut(image: np.ndarray, iterations: int = 5) -> np.ndar
     return rgba
 
 
+def remove_background_apple_vision(image: np.ndarray) -> np.ndarray:
+    """Remove background using Apple Vision VNGenerateForegroundInstanceMaskRequest.
+
+    Falls back to GrabCut if the compiled mask_subject binary is not found.
+    Returns an RGBA numpy array.
+    """
+    if not _MASK_TOOL.exists():
+        logger.warning("mask_subject binary not found at %s, falling back to GrabCut.", _MASK_TOOL)
+        return remove_background_grabcut(image)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        inp = Path(tmp) / "input.jpg"
+        out = Path(tmp) / "masked.png"
+        cv2.imwrite(str(inp), image)
+        result = subprocess.run(
+            [str(_MASK_TOOL), str(inp), str(out)],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            logger.warning("mask_subject failed: %s — falling back to GrabCut.", result.stderr.strip())
+            return remove_background_grabcut(image)
+        masked = cv2.imread(str(out), cv2.IMREAD_UNCHANGED)
+        if masked is None:
+            logger.warning("mask_subject output unreadable — falling back to GrabCut.")
+            return remove_background_grabcut(image)
+
+    logger.debug("Apple Vision subject masking applied.")
+    return masked
+
+
 def remove_background_rembg(image: np.ndarray) -> np.ndarray:
     """Remove background using rembg (U2-Net); returns RGBA numpy array."""
     try:
@@ -81,7 +117,9 @@ def preprocess_image(
     image = resize_to_max(image, cfg.max_size)
     image = denoise(image, cfg.denoise_ksize)
 
-    if cfg.bg_removal == "rembg":
+    if cfg.bg_removal == "apple_vision":
+        image = remove_background_apple_vision(image)
+    elif cfg.bg_removal == "rembg":
         image = remove_background_rembg(image)
     elif cfg.bg_removal == "grabcut":
         image = remove_background_grabcut(image)

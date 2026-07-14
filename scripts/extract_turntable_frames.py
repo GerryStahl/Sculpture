@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -10,12 +11,42 @@ OUT_DIR = Path("photos/emergent4_frames")
 NUM_FRAMES = 30
 
 
-def main() -> None:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Extract evenly spaced frames from a turntable video."
+    )
+    parser.add_argument(
+        "--video",
+        type=Path,
+        default=VIDEO_PATH,
+        help="Path to input video (default: photos/emergent4.mp4)",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=OUT_DIR,
+        help="Output directory for extracted frames",
+    )
+    parser.add_argument(
+        "--frames",
+        type=int,
+        default=NUM_FRAMES,
+        help="Number of evenly spaced frames to extract",
+    )
+    return parser.parse_args()
 
-    cap = cv2.VideoCapture(str(VIDEO_PATH))
+
+def main() -> None:
+    args = parse_args()
+    video_path: Path = args.video
+    out_dir: Path = args.out
+    num_frames: int = max(2, int(args.frames))
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
-        raise SystemExit(f"Cannot open {VIDEO_PATH}")
+        raise SystemExit(f"Cannot open {video_path}")
 
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -28,8 +59,8 @@ def main() -> None:
         start_idx, end_idx = 0, frame_count - 1
 
     raw_indices = [
-        round(start_idx + i * (end_idx - start_idx) / (NUM_FRAMES - 1))
-        for i in range(NUM_FRAMES)
+        round(start_idx + i * (end_idx - start_idx) / (num_frames - 1))
+        for i in range(num_frames)
     ]
     indices = sorted({max(0, min(frame_count - 1, idx)) for idx in raw_indices})
 
@@ -41,7 +72,7 @@ def main() -> None:
             print(f"Skipping unreadable frame {frame_idx}")
             continue
 
-        out_path = OUT_DIR / f"emergent4_{i:02d}_frame{frame_idx:06d}.jpg"
+        out_path = out_dir / f"{video_path.stem}_{i:02d}_frame{frame_idx:06d}.jpg"
         cv2.imwrite(
             str(out_path),
             frame_bgr,
@@ -56,16 +87,16 @@ def main() -> None:
             }
         )
 
-    manifest_path = OUT_DIR / "manifest.json"
+    manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2))
 
     print(
         {
-            "video": str(VIDEO_PATH),
+            "video": str(video_path),
             "frame_count": frame_count,
             "fps": fps,
             "saved_frames": len(manifest),
-            "out_dir": str(OUT_DIR),
+            "out_dir": str(out_dir),
             "manifest": str(manifest_path),
         }
     )

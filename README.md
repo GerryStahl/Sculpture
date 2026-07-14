@@ -80,7 +80,10 @@ Multi-view Images (MP4 / Image Sequence)
 Standardizes input images and removes unwanted background:
 - **Resize:** Constrains longest edge to 2048px (configurable)
 - **Denoise:** Optional Gaussian blur to reduce noise
-- **Background Removal:** rembg (U2-Net segmentation) or GrabCut (traditional)
+- **Background Removal:** 
+  - **Apple Vision** (default, macOS 14+): Uses `VNGenerateForegroundInstanceMaskRequest` for on-device ML subject isolation
+  - **rembg**: U2-Net deep learning segmentation
+  - **GrabCut**: Traditional computer vision method (fastest, lower quality)
 
 #### 2. **Feature Matching**
 Establishes correspondences between images:
@@ -119,6 +122,8 @@ sculpture/
 ├── photos/
 │   ├── emergent4g.HEIC           ← Sample single image
 │   ├── emergent4.mp4             ← Sample turntable video
+│   ├── adam.mp4                  ← Torso sculpture video
+│   ├── athena.mp4                ← Torso sculpture video
 │   └── emergent4_frames/         ← Extracted 30 frames (generated)
 ├── data/
 │   ├── raw/                      ← Original images
@@ -128,6 +133,7 @@ sculpture/
 │       ├── meshes/               ← Mesh PLY files
 │       ├── wireframes/           ← Wireframe OBJ/JSON
 │       ├── reconstruction/       ← Point cloud PLY
+│       ├── renders/              ← Preview images
 │       └── pipeline.log          ← Execution logs
 ├── src/sculpture/
 │   ├── config.py                 ← Pydantic config loader
@@ -137,12 +143,19 @@ sculpture/
 │   ├── reconstruction.py         ← Multi-view SfM → point cloud
 │   ├── meshing.py                ← Poisson/BPA/alpha-shape
 │   ├── wireframe.py              ← Feature edges → NetworkX graph
+│   ├── playground.py             ← 3D mesh manipulation tools
 │   ├── pipeline.py               ← End-to-end orchestrator
 │   └── cli.py                    ← Typer CLI commands
 ├── scripts/
-│   └── extract_turntable_frames.py  ← Extract frames from MP4
+│   ├── extract_turntable_frames.py    ← Extract frames from MP4
+│   └── apple_mask_frames.py          ← Test Apple Vision masking on frames
+├── tools/
+│   └── mask_subject/
+│       ├── main.swift            ← Apple Vision VisionKit CLI (Swift)
+│       └── mask_subject          ← Compiled binary
 ├── notebooks/
-│   └── 01_explore.py             ← Interactive exploration (with matplotlib)
+│   ├── 01_explore.py             ← Exploration script
+│   └── 02_playground.ipynb       ← Interactive 3D model editor + previews
 ├── tests/
 │   ├── test_config.py            ← Config loading tests
 │   ├── test_image_io.py          ← Image I/O tests (16 passing)
@@ -223,7 +236,7 @@ Edit `config/default.yaml` to tune the pipeline:
 ```yaml
 preprocessing:
   max_size: 2048              # Resize longest edge
-  bg_removal: rembg           # "rembg" | "grabcut" | "none"
+  bg_removal: apple_vision    # "apple_vision" | "rembg" | "grabcut" | "none"
   denoise_ksize: 0            # Gaussian kernel (0 = skip)
 
 reconstruction:
@@ -298,6 +311,78 @@ Tests cover:
 
 ---
 
+## Apple Vision Subject Masking
+
+### Overview
+
+**New in v1.1:** Native macOS subject isolation using Apple's `VNGenerateForegroundInstanceMaskRequest` (on-device ML, no internet required).
+
+### Building the Masking Tool
+
+Requires full Xcode with Vision framework:
+
+```bash
+cd tools/mask_subject/
+swiftc main.swift -framework Vision -framework CoreImage -framework ImageIO -o mask_subject
+```
+
+### Usage
+
+The masking is automatic when `bg_removal: apple_vision` is set in config (now the default). Alternatively:
+
+```bash
+tools/mask_subject/mask_subject <input_jpg> <output_png>
+```
+
+Outputs a PNG with subject foreground on transparent background.
+
+### Advantages
+
+| Method | Quality | Speed | Memory | Req. |
+|--------|---------|-------|--------|------|
+| **Apple Vision** | ★★★★★ | ★★★★ | Low | macOS 14+ + Xcode |
+| **rembg** | ★★★★ | ★★ | 250MB+ model | pip install |
+| **GrabCut** | ★★ | ★★★★★ | Minimal | OpenCV only |
+
+Apple Vision is **production-ready** and included in this project.
+
+---
+
+## Interactive Playground
+
+### Notebook: `02_playground.ipynb`
+
+A Jupyter notebook for loading, viewing, and editing reconstructed 3D models:
+
+```bash
+jupyter notebook notebooks/02_playground.ipynb
+```
+
+#### Features
+1. **Load & Preview** — Auto-loads the latest `mesh.ply`, displays with de-flatten preview for thin objects
+2. **Interactive 3D Viewer** — Rotate, zoom, pan using Plotly
+3. **Parametric Controls** — Sliders for:
+   - Rotation (yaw, pitch, roll)
+   - Translation (X, Y, Z)
+   - Scale
+4. **Geometry Transforms** — Mirror, shear, vertex-pull deformation, subset transformation
+5. **Camera & Lighting** — Adjust eye position, opacity, material color
+6. **Side-by-Side Comparison** — Original vs. modified mesh inspection
+7. **Export** — Save edited models as PLY or HTML viewer
+8. **Background Removal Previews** — View original + masked frames for quality inspection
+
+#### Example Workflow
+```
+1. Run pipeline: sculpture run --photos photos/emergent4_frames
+2. Open notebook: jupyter notebook notebooks/02_playground.ipynb
+3. Cell 2 auto-loads mesh.ply and displays initial model
+4. Use sliders in Section 3–4 to rotate and inspect
+5. Try deformations in Section 5
+6. Export in Section 8
+```
+
+---
+
 ## API Reference
 
 ### Command-Line Interface
@@ -306,6 +391,7 @@ Tests cover:
 sculpture --help                           # Show all commands
 sculpture run --help                       # Full options for run
 sculpture preprocess-only --help           # Preprocessing only
+sculpture playground --help                # Launch interactive playground
 ```
 
 ### Python API
