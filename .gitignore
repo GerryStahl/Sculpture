@@ -25,3 +25,16 @@ build/
 # IDE
 .vscode/
 .idea/
+
+# Generated / large project assets (not committed)
+data/
+photos/*.mp4
+photos/*.MOV
+photos/*.mov
+photos/emergent4_frames/
+*.egg-info/
+
+# Word / Office docs
+*.docx
+*.xlsx
+*.pptx

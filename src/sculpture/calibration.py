@@ -31,7 +31,7 @@ class CameraIntrinsics:
         logger.info("Camera intrinsics saved → %s", path)
 
     @classmethod
-    def load(cls, path: Path) -> "CameraIntrinsics":
+    def load(cls, path: Path) -> CameraIntrinsics:
         with path.open() as fh:
             data = json.load(fh)
         return cls(**data)

@@ -64,7 +64,9 @@ def trimesh_to_open3d(mesh: trimesh.Trimesh) -> o3d.geometry.TriangleMesh:
 
 
 
-def rotate_mesh(mesh: o3d.geometry.TriangleMesh, degrees_y: float = 15.0) -> o3d.geometry.TriangleMesh:
+def rotate_mesh(
+    mesh: o3d.geometry.TriangleMesh, degrees_y: float = 15.0
+) -> o3d.geometry.TriangleMesh:
     """Rotate a mesh around the vertical Y axis."""
     rotated = mesh.clone()
     radians = np.deg2rad(degrees_y)
@@ -84,7 +86,9 @@ def scale_mesh(mesh: o3d.geometry.TriangleMesh, factor: float = 1.0) -> o3d.geom
 
 
 
-def translate_mesh(mesh: o3d.geometry.TriangleMesh, offset: tuple[float, float, float]) -> o3d.geometry.TriangleMesh:
+def translate_mesh(
+    mesh: o3d.geometry.TriangleMesh, offset: tuple[float, float, float]
+) -> o3d.geometry.TriangleMesh:
     """Translate a mesh by an XYZ offset."""
     translated = mesh.clone()
     translated.translate(offset)
@@ -106,7 +110,9 @@ def deform_near_point(
     deformed = mesh.clone()
     vertices = np.asarray(deformed.vertices).copy()
     center = np.asarray(control_point.position, dtype=np.float64)
-    direction_vec = np.asarray(direction if direction is not None else [0.0, 0.0, 1.0], dtype=np.float64)
+    direction_vec = np.asarray(
+        direction if direction is not None else [0.0, 0.0, 1.0], dtype=np.float64
+    )
     norm = np.linalg.norm(direction_vec)
     if norm == 0:
         raise ValueError("direction must not be zero")
@@ -196,7 +202,9 @@ def compute_bounding_box_info(mesh: o3d.geometry.TriangleMesh) -> dict[str, floa
 
 
 
-def mesh_preview_figure(mesh: o3d.geometry.TriangleMesh, title: str = "Sculpture playground") -> go.Figure:
+def mesh_preview_figure(
+    mesh: o3d.geometry.TriangleMesh, title: str = "Sculpture playground"
+) -> go.Figure:
     """Create a Plotly figure for rotating and inspecting the mesh."""
     vertices = np.asarray(mesh.vertices)
     triangles = np.asarray(mesh.triangles)
@@ -231,7 +239,9 @@ def mesh_preview_figure(mesh: o3d.geometry.TriangleMesh, title: str = "Sculpture
 
 
 
-def export_viewer_html(mesh: o3d.geometry.TriangleMesh, path: Path | str, title: str = "Sculpture viewer") -> Path:
+def export_viewer_html(
+    mesh: o3d.geometry.TriangleMesh, path: Path | str, title: str = "Sculpture viewer"
+) -> Path:
     """Export a self-contained HTML file for sharing and rotation inspection."""
     out_path = Path(path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -241,7 +251,9 @@ def export_viewer_html(mesh: o3d.geometry.TriangleMesh, path: Path | str, title:
 
 
 
-def turntable_orbit_frames(mesh: o3d.geometry.TriangleMesh, steps: int = 36) -> list[o3d.geometry.TriangleMesh]:
+def turntable_orbit_frames(
+    mesh: o3d.geometry.TriangleMesh, steps: int = 36
+) -> list[o3d.geometry.TriangleMesh]:
     """Generate rotated copies of the mesh for visual comparison."""
     frames: list[o3d.geometry.TriangleMesh] = []
     for index in range(steps):

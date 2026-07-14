@@ -59,7 +59,6 @@ def reconstruct_open3d(
 
     # Feature-based sparse point cloud via OpenCV + Open3D
     import cv2
-    from PIL import Image as PILImage
 
     orb = cv2.ORB_create(nfeatures=5000)
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)

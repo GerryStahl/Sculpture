@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -55,8 +54,8 @@ def remove_background_grabcut(image: np.ndarray, iterations: int = 5) -> np.ndar
 def remove_background_rembg(image: np.ndarray) -> np.ndarray:
     """Remove background using rembg (U2-Net); returns RGBA numpy array."""
     try:
-        from rembg import remove  # type: ignore[import]
         from PIL import Image
+        from rembg import remove  # type: ignore[import]
         pil_in = Image.fromarray(image)
         pil_out = remove(pil_in)
         return np.asarray(pil_out, dtype=np.uint8)

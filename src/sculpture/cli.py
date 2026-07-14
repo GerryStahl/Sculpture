@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich import print as rprint
@@ -18,9 +17,9 @@ def _project_root() -> Path:
 
 @app.command()
 def run(
-    photos: Optional[Path] = typer.Option(None, "--photos", "-p",
+    photos: Path | None = typer.Option(None, "--photos", "-p",
                                            help="Directory of input images."),
-    config: Optional[Path] = typer.Option(None, "--config", "-c",
+    config: Path | None = typer.Option(None, "--config", "-c",
                                            help="Path to YAML config file."),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
@@ -41,7 +40,7 @@ def run(
 def preprocess_only(
     photos: Path = typer.Argument(..., help="Directory of input images."),
     output: Path = typer.Option(Path("data/processed"), "--output", "-o"),
-    config: Optional[Path] = typer.Option(None, "--config", "-c"),
+    config: Path | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Preprocess images only (resize + background removal)."""
     from sculpture.config import load_config
@@ -76,7 +75,9 @@ def playground(
     Use --viewer to open the exported HTML preview if it already exists.
     """
     notebook_path = _project_root() / "notebooks" / "02_playground.ipynb"
-    viewer_path = _project_root() / "data" / "output" / "renders" / "sculpture_playground_export.html"
+    viewer_path = (
+        _project_root() / "data" / "output" / "renders" / "sculpture_playground_export.html"
+    )
 
     target = viewer_path if viewer else notebook_path
     if viewer and not target.exists():

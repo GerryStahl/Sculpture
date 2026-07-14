@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from sculpture.config import SculptureConfig, load_config
+from sculpture.config import load_config
 from sculpture.io.image_io import collect_images, load_image, save_image
 from sculpture.meshing import build_mesh
 from sculpture.preprocessing import preprocess_image
