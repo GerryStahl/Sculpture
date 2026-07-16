@@ -10,6 +10,7 @@ from sculpture.io.image_io import collect_images, load_image, save_image
 from sculpture.meshing import build_mesh
 from sculpture.preprocessing import preprocess_image
 from sculpture.reconstruction import reconstruct
+from sculpture.thumbnail import render_mesh_thumbnail, render_wireframe_thumbnail
 from sculpture.utils.logging import setup_logging
 from sculpture.wireframe import extract_wireframe
 
@@ -40,7 +41,19 @@ def run_pipeline(
     # ── Paths ───────────────────────────────────────────────────────────────
     root = Path(config_path).parent.parent if config_path else Path.cwd()
     photos = Path(photos_dir) if photos_dir else root / cfg.paths.photos_dir
-    output_dir = root / cfg.paths.output_dir
+    
+    # Detect sculpture ID from photos directory (e.g., "photos/adam_frames" → "adam")
+    sculpture_id = None
+    if photos.name.endswith("_frames"):
+        sculpture_id = photos.name.replace("_frames", "")
+    
+    # Organize output by sculpture ID if detected
+    base_output_dir = root / cfg.paths.output_dir
+    if sculpture_id:
+        output_dir = base_output_dir / sculpture_id
+        logger.info("Detected sculpture: %s (from photos dir: %s)", sculpture_id, photos.name)
+    else:
+        output_dir = base_output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # ── 1. Load images ──────────────────────────────────────────────────────
@@ -77,8 +90,25 @@ def run_pipeline(
 
     # ── 4. Mesh + wireframe ─────────────────────────────────────────────────
     logger.info("Step 4/4 – Building mesh and extracting wireframe")
-    mesh = build_mesh(pcd, cfg.meshing, output_dir / "meshes")
-    wf_graph = extract_wireframe(mesh, cfg.wireframe, output_dir / "wireframes")
+    mesh_dir = output_dir / "meshes"
+    wire_dir = output_dir / "wireframes"
+    thumb_dir = output_dir / "thumbnails"
+
+    mesh = build_mesh(pcd, cfg.meshing, mesh_dir)
+    wf_graph = extract_wireframe(mesh, cfg.wireframe, wire_dir)
+
+    # ── 5. Thumbnails ───────────────────────────────────────────────────────
+    logger.info("Rendering thumbnails")
+    mesh_ply = mesh_dir / "mesh.ply"
+    wire_obj = wire_dir / "wireframe.obj"
+
+    mesh_thumb = render_mesh_thumbnail(mesh_ply, thumb_dir / "mesh_thumb.png")
+    wire_thumb = render_wireframe_thumbnail(wire_obj, thumb_dir / "wireframe_thumb.png")
+
+    if mesh_thumb:
+        logger.info("  Mesh thumbnail      → %s", mesh_thumb)
+    if wire_thumb:
+        logger.info("  Wireframe thumbnail → %s", wire_thumb)
 
     logger.info("Pipeline complete.")
     logger.info("  Point cloud : %d points", len(pcd.points))
@@ -87,4 +117,10 @@ def run_pipeline(
     logger.info("  Wireframe   : %d nodes, %d edges",
                 wf_graph.number_of_nodes(), wf_graph.number_of_edges())
 
-    return {"point_cloud": pcd, "mesh": mesh, "wireframe_graph": wf_graph}
+    return {
+        "point_cloud": pcd,
+        "mesh": mesh,
+        "wireframe_graph": wf_graph,
+        "mesh_thumbnail": mesh_thumb,
+        "wireframe_thumbnail": wire_thumb,
+    }

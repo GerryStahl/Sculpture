@@ -13,66 +13,63 @@ An end-to-end Python pipeline for reconstructing 3-D wireframe models of sculptu
 - Mesh point clouds and simplify for downstream use
 - Extract and export structural wireframes (sharp edges, creases, silhouettes)
 
-## Technology Stack
-
-### Core Libraries
-- **OpenCV** — Feature detection (ORB), camera calibration, image preprocessing
-- **Open3D** — Point cloud processing, Poisson meshing, mesh utilities
-- **NumPy / SciPy** — Numerical computing and linear algebra
-- **scikit-image** — Advanced image filtering and morphology
-- **Trimesh** — Mesh analysis and simplification
-- **NetworkX** — Wireframe graph representation and export
-
-### Configuration & Orchestration
-- **Pydantic v2** — Type-safe configuration with validation
-- **PyYAML** — Human-readable config files (YAML format)
-- **Typer** — CLI framework for user-facing commands
-- **Rich** — Terminal formatting and progress output
-
-### Development
-- **PyTest** — Unit testing framework (16 tests included)
-- **MLflow** — Experiment tracking (optional)
-- **Ruff** — Code linting and formatting
-
-### Media Support
-- **Pillow / pillow-heif** — Image I/O with HEIC/HEIF support (native iPhone photo format)
-- **imageio** — Video frame extraction
-
----
-
 ## Pipeline Overview
 
-```
-Multi-view Images (MP4 / Image Sequence)
-                    ↓
-    [1. Image Preprocessing]
-       • Resize to max 2048px
-       • Denoise (Gaussian blur)
-       • Background removal (rembg / GrabCut)
-                    ↓
-    [2. Feature Extraction & Matching]
-       • ORB keypoint detection
-       • Brute-force feature matching
-       • Pose estimation (homography + RANSAC)
-                    ↓
-    [3. Point Cloud Reconstruction]
-       • Sparse 3-D point triangulation
-       • Voxel downsampling
-       • Normal estimation
-                    ↓
-    [4. Mesh Generation]
-       • Poisson surface reconstruction (depth=9)
-       • Density filtering & cleanup
-       • Mesh simplification (↓ target face count)
-                    ↓
-    [5. Wireframe Extraction]
-       • Dihedral angle feature detection
-       • Edge filtering by length
-       • NetworkX graph construction
-       • Export (OBJ / JSON)
-                    ↓
-         Outputs: Point Cloud, Mesh, Wireframe Graph
-```
+### Technical Pipeline (Manual vs Automated)
+
+This project follows the workflow below (matching the collection-to-Blender round-trip process).
+
+1. **Add turntable videos (`.mp4`) to catalog (JSON)**
+   - **Manual user action:** Record/copy `.mp4` files into `photos/`.
+   - **Automated action:** Build or refresh catalog index.
+   - **Project components:** `sculpture build-catalog`, [scripts/build_sculpture_catalog.py](scripts/build_sculpture_catalog.py), [src/sculpture/catalog.py](src/sculpture/catalog.py), [src/sculpture/cli.py](src/sculpture/cli.py)
+   - **Status:** **Functioning**
+
+2. **Frame extraction (30 frames over 360°, ~12° step)**
+   - **Manual user action:** Choose source video(s).
+   - **Automated action:** Extract a standardized set of exactly 30 evenly spaced frames (~12° angular step).
+   - **Project components:** [scripts/extract_turntable_frames.py](scripts/extract_turntable_frames.py)
+   - **Status:** **Functioning**
+
+3. **Background removal and store in catalog**
+   - **Manual user action:** Ensure Apple Vision masking tool is built on macOS.
+   - **Automated action:** Subject masking with Apple Vision during preprocessing + catalog indexing of masked outputs.
+   - **Project components:** [src/sculpture/preprocessing.py](src/sculpture/preprocessing.py), [tools/mask_subject/main.swift](tools/mask_subject/main.swift), [scripts/apple_mask_frames.py](scripts/apple_mask_frames.py), [src/sculpture/catalog.py](src/sculpture/catalog.py)
+   - **Status:** **Functioning**
+
+4. **Mesh creation and store original mesh in catalog**
+   - **Manual user action:** Trigger run from CLI.
+   - **Automated action:** Feature matching → reconstruction → meshing → thumbnail generation → catalog asset discovery.
+   - **Project components:** `sculpture run`, [src/sculpture/pipeline.py](src/sculpture/pipeline.py), [src/sculpture/reconstruction.py](src/sculpture/reconstruction.py), [src/sculpture/meshing.py](src/sculpture/meshing.py), [src/sculpture/catalog.py](src/sculpture/catalog.py)
+   - **Status:** **Functioning**
+
+5. **Export mesh to Blender**
+   - **Manual user action:** Run `sculpture blender-export` command (one-click handoff).
+   - **Automated action:** Copy mesh, generate startup presets, create quick-start guide, optionally launch Blender.
+   - **Project components:** [src/sculpture/cli.py](src/sculpture/cli.py), [src/sculpture/meshing.py](src/sculpture/meshing.py)
+   - **Status:** **Functioning (automated one-click export)**
+
+6. **Use Blender to manipulate models**
+   - **Manual user action:** Sculpt/edit in Blender; export edited mesh.
+   - **Automated action:** None inside this repo (Blender is external).
+   - **Project components:** External tool (Blender)
+   - **Status:** **Manual external step (Functioning workflow)**
+
+7. **Import manipulated models from Blender and store in catalog**
+   - **Manual user action:** Provide edited mesh path and provenance metadata.
+   - **Automated action:** Register edited mesh as first-class catalog asset with edit history and versioning.
+   - **Project components:** `sculpture import-edited-mesh`, [src/sculpture/catalog.py](src/sculpture/catalog.py), [src/sculpture/cli.py](src/sculpture/cli.py), [tests/test_catalog.py](tests/test_catalog.py)
+   - **Status:** **Functioning**
+
+### Internal Reconstruction Stages (Automated)
+
+Within steps 3–4, the pipeline automatically performs:
+
+- Image preprocessing (resize / denoise / masking)
+- Feature extraction and matching (ORB + BF matching + RANSAC)
+- Point cloud reconstruction (triangulation + filtering)
+- Mesh generation (Poisson + cleanup + simplification)
+- Wireframe extraction (feature/boundary edges)
 
 ### Step-by-Step Details
 
@@ -81,9 +78,7 @@ Standardizes input images and removes unwanted background:
 - **Resize:** Constrains longest edge to 2048px (configurable)
 - **Denoise:** Optional Gaussian blur to reduce noise
 - **Background Removal:** 
-  - **Apple Vision** (default, macOS 14+): Uses `VNGenerateForegroundInstanceMaskRequest` for on-device ML subject isolation
-  - **rembg**: U2-Net deep learning segmentation
-  - **GrabCut**: Traditional computer vision method (fastest, lower quality)
+   - **Apple Vision only** (macOS 14+): Uses `VNGenerateForegroundInstanceMaskRequest` for on-device ML subject isolation
 
 #### 2. **Feature Matching**
 Establishes correspondences between images:
@@ -113,6 +108,33 @@ Identifies and exports structural edges:
 
 ---
 
+## Technology Stack
+
+### Core Libraries
+- **OpenCV** — Feature detection (ORB), camera calibration, image preprocessing
+- **Open3D** — Point cloud processing, Poisson meshing, mesh utilities
+- **NumPy / SciPy** — Numerical computing and linear algebra
+- **scikit-image** — Advanced image filtering and morphology
+- **Trimesh** — Mesh analysis and simplification
+- **NetworkX** — Wireframe graph representation and export
+
+### Configuration & Orchestration
+- **Pydantic v2** — Type-safe configuration with validation
+- **PyYAML** — Human-readable config files (YAML format)
+- **Typer** — CLI framework for user-facing commands
+- **Rich** — Terminal formatting and progress output
+
+### Development
+- **PyTest** — Unit testing framework
+- **MLflow** — Experiment tracking (optional)
+- **Ruff** — Code linting and formatting
+
+### Media Support
+- **Pillow / pillow-heif** — Image I/O with HEIC/HEIF support (native iPhone photo format)
+- **imageio** — Video frame extraction
+
+---
+
 ## Project Structure
 
 ```
@@ -133,6 +155,7 @@ sculpture/
 │       ├── meshes/               ← Mesh PLY files
 │       ├── wireframes/           ← Wireframe OBJ/JSON
 │       ├── reconstruction/       ← Point cloud PLY
+│       ├── thumbnails/           ← Mesh / wireframe preview PNGs
 │       ├── renders/              ← Preview images
 │       └── pipeline.log          ← Execution logs
 ├── src/sculpture/
@@ -158,7 +181,9 @@ sculpture/
 │   └── 02_playground.ipynb       ← Interactive 3D model editor + previews
 ├── tests/
 │   ├── test_config.py            ← Config loading tests
-│   ├── test_image_io.py          ← Image I/O tests (16 passing)
+│   ├── test_image_io.py          ← Image I/O tests
+│   ├── test_catalog.py           ← Catalog sync + provenance tests
+│   ├── test_extract_turntable_frames.py ← 30-frame extraction standard tests
 │   ├── test_preprocessing.py     ← Preprocessing unit tests
 │   ├── test_wireframe.py         ← Wireframe logic tests
 │   └── conftest.py               ← Pytest configuration
@@ -221,22 +246,262 @@ sculpture run --config config/custom.yaml --photos photos/
 ### Output Files
 
 After a successful run, check:
-- **Point Cloud:** `data/output/reconstruction/point_cloud.ply` (Open3D/Meshlab)
-- **Mesh:** `data/output/meshes/mesh.ply` (Blender/CAD)
-- **Wireframe (OBJ):** `data/output/wireframes/wireframe.obj` (CAD/3D editors)
-- **Wireframe (JSON):** `data/output/wireframes/wireframe.json` (Post-processing)
+- **Point Cloud:** `data/output/<sculpture_id>/reconstruction/point_cloud.ply` (Open3D/Meshlab)
+- **Mesh:** `data/output/<sculpture_id>/meshes/mesh.ply` (Blender/CAD)
+- **Wireframe (OBJ):** `data/output/<sculpture_id>/wireframes/wireframe.obj` (CAD/3D editors)
+- **Wireframe (JSON):** `data/output/<sculpture_id>/wireframes/wireframe.json` (Post-processing)
+- **Thumbnails:** `data/output/<sculpture_id>/thumbnails/mesh_thumb.png` and `data/output/<sculpture_id>/thumbnails/wireframe_thumb.png` (quick visual review)
 - **Logs:** `data/output/pipeline.log` (Execution details)
+
+### Structured Sculpture Repository (JSON + PKL)
+
+As your collection grows, build a unified catalog that links each sculpture to its media and outputs.
+
+```bash
+# Build/refresh repository index
+python scripts/build_sculpture_catalog.py --photos photos --out data/repository --frame-samples 30
+
+# or via CLI
+sculpture build-catalog --photos photos --out data/repository --frame-samples 30
+```
+
+Generated files:
+- `data/repository/sculpture_catalog.json` — human-readable index
+- `data/repository/sculpture_catalog.pkl` — fast Python load for tooling
+
+Each entry includes:
+- source video path
+- frame set location + sampled frame paths
+- masked preview paths
+- mesh / wireframe / point-cloud paths
+- mesh / wireframe thumbnail preview paths
+- photography date metadata
+- curator notes / critic description fields
+
+Add or update sculpture metadata directly in the catalog:
+
+```bash
+sculpture add-sculpture nike \
+   --title "Nike" \
+   --year 2022 \
+   --medium "Ceramic sculpture" \
+   --dimensions "unknown" \
+   --tag winged --tag figurative \
+   --photography-date 2022-11-26 \
+   --critic-description "A winged fragment of victory, classical in outline but modern in its incompleteness." \
+   --catalog-dir data/repository
+```
+
+Supported metadata fields:
+- `title`
+- `year`
+- `medium`
+- `dimensions`
+- repeatable `--tag`
+- `photography_date`
+- `notes`
+- `critic_description`
+
+---
+
+## Blender Integration: Import Edited Meshes
+
+The `import-edited-mesh` command enables a round-trip workflow where edited sculptures become first-class catalog assets with full provenance tracking.
+
+### Workflow
+
+1. **Export mesh from reconstruction**:
+   ```bash
+   # From the pipeline output
+   cp data/output/adam/meshes/mesh.ply data/output/adam/meshes/adam_original.ply
+   ```
+
+2. **Edit in Blender**:
+   - Import PLY: `File → Import → PLY` 
+   - Refine geometry (sculpting, smoothing, etc.)
+   - Export: `File → Export → PLY`
+   - Save to: `data/output/adam/meshes_edited/adam_edited_v1.ply`
+
+3. **Register edit in catalog**:
+   ```bash
+   sculpture import-edited-mesh adam \
+       data/output/adam/meshes_edited/adam_edited_v1.ply \
+       --editor Blender \
+       --notes "Refined nose geometry; smoothed ear transitions" \
+       --source-mesh data/output/adam/meshes/mesh.ply
+   ```
+
+4. **Verify in catalog**:
+   ```python
+   import json
+   with open('data/repository/sculpture_catalog.json') as f:
+       catalog = json.load(f)
+   
+   adam = next(r for r in catalog['sculptures'] if r['sculpture_id'] == 'adam')
+   print(f"Edit history: {len(adam['edit_history'])} versions")
+   for edit in adam['edit_history']:
+       print(f"  v{edit['version']}: {edit['editor']} @ {edit['timestamp']}")
+   ```
+
+### Import Command Details
+
+```bash
+sculpture import-edited-mesh <sculpture_id> <mesh_path> \
+    --editor Blender                              # (default: "Blender")
+    --notes "Description of changes"              # Optional provenance notes
+    --source-mesh <original_mesh_path>            # Optional: original mesh reference
+    --catalog-dir data/repository                 # (default: data/repository)
+```
+
+**Arguments:**
+- `sculpture_id` — Target sculpture (e.g., `adam`, `athena`)
+- `mesh_path` — Path to edited mesh file (supports PLY, OBJ, etc.)
+
+**Options:**
+- `--editor` — Editor tool name (Blender, Meshmixer, etc.)
+- `--notes` — Provenance notes (e.g., edit intent, artist name)
+- `--source-mesh` — Reference to original mesh that was edited
+- `--catalog-dir` — Catalog directory containing `sculpture_catalog.json`
+
+### Catalog Schema: Edit History
+
+Each sculpture record includes:
+- **`edited_meshes`**: `list[str]` — Relative paths to Blender-edited mesh files
+- **`edit_history`**: `list[dict]` — Provenance log with entries:
+  ```json
+  {
+    "timestamp": "2026-07-15T20:19:28",
+    "editor": "Blender",
+    "source_mesh": "data/output/adam/meshes/mesh.ply",
+    "edited_mesh": "data/output/adam/meshes_edited/adam_edited_v1.ply",
+    "editor_notes": "Refined nose; smoothed transitions",
+    "version": 1
+  }
+  ```
+
+### Multi-Edit Workflow
+
+Each `import-edited-mesh` call appends to the edit history, creating version lineage:
+
+```bash
+# v1: Initial refinement
+sculpture import-edited-mesh adam mesh_v1.ply --notes "First pass geometry refinement"
+
+# v2: Further detail work
+sculpture import-edited-mesh adam mesh_v2.ply --notes "Added surface detail pass"
+
+# v3: Final export for printing
+sculpture import-edited-mesh adam mesh_v3_final.ply --notes "Optimized for 3D printing"
+```
+
+Resulting catalog entry:
+```python
+adam['edit_history']  # 3 entries (v1, v2, v3)
+adam['edited_meshes'] # [path_v1, path_v2, path_v3]
+```
+
+---
+
+## One-Click Blender Export
+
+### Workflow
+
+The `blender-export` command automates the entire handoff from reconstruction to Blender editing:
+
+```bash
+# Simple export (copies mesh + generates presets)
+sculpture blender-export adam
+
+# Export and automatically launch Blender with mesh pre-loaded
+sculpture blender-export adam --open
+
+# Export to custom directory
+sculpture blender-export athena --export-dir ~/my_blender_projects
+```
+
+### What It Does
+
+1. **Locates mesh** — Searches catalog or pipeline output for the reconstructed mesh
+2. **Copies mesh** — Exports to a Blender-friendly directory (e.g., `data/blender_exports/adam/`)
+3. **Generates presets** — Creates:
+   - **Startup script** — Auto-import script for hands-free Blender launch
+   - **Quick-start guide** — Plain-text instructions for manual vs. preset import
+4. **Optional launch** — Opens Blender with mesh pre-loaded (macOS/Linux/Windows)
+
+### Export Output
+
+After running `sculpture blender-export adam`, you'll find in `data/blender_exports/adam/`:
+
+```
+adam_mesh.ply                      ← Import this in Blender
+adam_blender_import.py             ← Optional auto-import preset
+adam_BLENDER_QUICKSTART.txt        ← Import instructions
+```
+
+### Blender Import Options
+
+**Option 1: Manual Import (Fastest)**
+```
+1. Open Blender
+2. File → Import → PLY → adam_mesh.ply
+3. Start editing
+```
+
+**Option 2: Auto-Import Preset (Hands-free)**
+```
+1. Copy adam_blender_import.py to Blender's startup scripts folder
+2. Restart Blender
+3. Mesh auto-loads with viewport framed
+```
+
+**Option 3: Python Console (Batch operations)**
+```
+1. Open Blender Scripting workspace
+2. File → Open: adam_blender_import.py
+3. Click [Run Script]
+```
+
+### Complete Round-Trip Workflow
+
+```bash
+# 1. Reconstruct
+sculpture run --photos photos/adam_frames
+
+# 2. Export to Blender
+sculpture blender-export adam --open
+
+# 3. [In Blender] Edit the mesh
+#    - Sculpt, smooth, refine geometry
+#    - Save your work
+#    - File → Export → PLY → adam_edited_v1.ply
+
+# 4. Register edited mesh back in catalog
+sculpture import-edited-mesh adam \
+    data/blender_exports/adam/adam_edited_v1.ply \
+    --notes "Refined nose and ear transitions" \
+    --source-mesh data/blender_exports/adam/adam_mesh.ply
+
+# 5. Verify in catalog
+python -c "
+import json
+with open('data/repository/sculpture_catalog.json') as f:
+    cat = json.load(f)
+    adam = next(s for s in cat['sculptures'] if s['sculpture_id'] == 'adam')
+    print(f\"Edit history: {len(adam['edit_history'])} entries\")
+"
+```
 
 ---
 
 ## Configuration
+
 
 Edit `config/default.yaml` to tune the pipeline:
 
 ```yaml
 preprocessing:
   max_size: 2048              # Resize longest edge
-  bg_removal: apple_vision    # "apple_vision" | "rembg" | "grabcut" | "none"
+   bg_removal: apple_vision    # Apple Vision only (required)
   denoise_ksize: 0            # Gaussian kernel (0 = skip)
 
 reconstruction:
@@ -258,7 +523,7 @@ wireframe:
 
 ## Testing
 
-Run the full test suite (16 unit tests):
+Run the full test suite (27 unit tests):
 
 ```bash
 pytest tests/ -v
@@ -266,11 +531,13 @@ pytest tests/ -v
 
 Expected output:
 ```
-16 passed in 1.87s
+27 passed in ~2s
 ```
 
 Tests cover:
 - Config loading and validation
+- Catalog JSON/PKL synchronization
+- Standardized 30-frame extraction + manifest generation
 - Image I/O (HEIC/PNG loading, roundtrip)
 - Preprocessing (resize, denoise, background removal)
 - Wireframe logic (graph construction, edge filtering)
@@ -328,7 +595,15 @@ swiftc main.swift -framework Vision -framework CoreImage -framework ImageIO -o m
 
 ### Usage
 
-The masking is automatic when `bg_removal: apple_vision` is set in config (now the default). Alternatively:
+The masking is automatic in preprocessing. `bg_removal` is standardized to `apple_vision` and treated as required.
+
+Run preflight before processing to validate local setup and fail early with actionable guidance:
+
+```bash
+sculpture apple-vision-preflight
+```
+
+Direct invocation for spot checks:
 
 ```bash
 tools/mask_subject/mask_subject <input_jpg> <output_png>
@@ -336,15 +611,15 @@ tools/mask_subject/mask_subject <input_jpg> <output_png>
 
 Outputs a PNG with subject foreground on transparent background.
 
-### Advantages
+### Policy
 
-| Method | Quality | Speed | Memory | Req. |
-|--------|---------|-------|--------|------|
-| **Apple Vision** | ★★★★★ | ★★★★ | Low | macOS 14+ + Xcode |
-| **rembg** | ★★★★ | ★★ | 250MB+ model | pip install |
-| **GrabCut** | ★★ | ★★★★★ | Minimal | OpenCV only |
+- Apple Vision masking is the only supported background-removal path.
+- `grabcut` and `rembg` are no longer supported pipeline modes.
+- If `tools/mask_subject/mask_subject` is missing or fails, preprocessing fails fast.
 
-Apple Vision is **production-ready** and included in this project.
+### Why Apple Vision
+
+Apple Vision produced the most reliable masks for this sculpture dataset and is now the production baseline.
 
 ---
 
@@ -392,6 +667,11 @@ sculpture --help                           # Show all commands
 sculpture run --help                       # Full options for run
 sculpture preprocess-only --help           # Preprocessing only
 sculpture playground --help                # Launch interactive playground
+sculpture build-catalog --help             # Rebuild JSON/PKL repository index
+sculpture add-sculpture --help             # Add or update sculpture metadata
+sculpture blender-export --help            # One-click Blender mesh export + presets
+sculpture apple-vision-preflight --help    # Validate Apple Vision toolchain + smoke test
+sculpture import-edited-mesh --help        # Import Blender-edited meshes into catalog
 ```
 
 ### Python API
@@ -419,7 +699,7 @@ wf_graph = result['wireframe_graph']     # NetworkX Graph
 ### Current
 - **Single-image fallback:** When <2 images provided, creates pseudo-PCD from silhouette edges (placeholder depth)
 - **COLMAP integration:** Requires manual export; planned for automatic wrapper
-- **rembg dependency:** Large model (~250MB); GrabCut fallback available
+- **Apple Vision dependency:** Requires macOS + compiled `tools/mask_subject` binary
 - **No GPU acceleration:** Uses CPU for all operations (slow for large point clouds)
 
 ### Future Enhancements
@@ -429,6 +709,30 @@ wf_graph = result['wireframe_graph']     # NetworkX Graph
 - [ ] GPU-accelerated point cloud processing (CUDA)
 - [ ] Web UI for visualization and parameter tuning
 - [ ] SVG wireframe projection for technical drawings
+
+---
+
+## Roadmap (Prioritized)
+
+### Now
+- [x] Add one-click Blender export helper command/presets (replace manual handoff step)
+- [x] Add Apple Vision preflight check command (validate binary and fail early with actionable guidance)
+
+### Next
+- [ ] Add automatic COLMAP wrapper for robust pose estimation path
+- [ ] Add depth prior integration behind `use_depth_prior`
+- [ ] Add optional GPU acceleration for reconstruction/meshing hot paths
+
+### Later
+- [ ] Add NeRF-based implicit reconstruction branch
+- [ ] Add lightweight web UI for visualization/parameter tuning
+- [ ] Add SVG wireframe projection/export pipeline
+
+### CI Coverage
+
+- GitHub Actions now runs the test suite on every push and pull request.
+- CI now checks that standardized frame extraction still produces exactly 30 frames plus a manifest.
+- CI now checks that `sculpture_catalog.json` and `sculpture_catalog.pkl` serialize the same catalog payload.
 
 ---
 

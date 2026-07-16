@@ -13,7 +13,8 @@ import numpy as np
 
 from sculpture.config import PreprocessingConfig
 
-_MASK_TOOL = Path(__file__).resolve().parents[3] / "tools" / "mask_subject" / "mask_subject"
+# Locate mask_subject binary relative to project root (parents[2] from src/sculpture/preprocessing.py)
+_MASK_TOOL = Path(__file__).resolve().parents[2] / "tools" / "mask_subject" / "mask_subject"
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +61,13 @@ def remove_background_grabcut(image: np.ndarray, iterations: int = 5) -> np.ndar
 def remove_background_apple_vision(image: np.ndarray) -> np.ndarray:
     """Remove background using Apple Vision VNGenerateForegroundInstanceMaskRequest.
 
-    Falls back to GrabCut if the compiled mask_subject binary is not found.
     Returns an RGBA numpy array.
     """
     if not _MASK_TOOL.exists():
-        logger.warning("mask_subject binary not found at %s, falling back to GrabCut.", _MASK_TOOL)
-        return remove_background_grabcut(image)
+        raise RuntimeError(
+            f"mask_subject binary not found at {_MASK_TOOL}. "
+            "Apple Vision masking is required. Build tools/mask_subject first."
+        )
 
     with tempfile.TemporaryDirectory() as tmp:
         inp = Path(tmp) / "input.jpg"
@@ -76,12 +78,10 @@ def remove_background_apple_vision(image: np.ndarray) -> np.ndarray:
             capture_output=True, text=True,
         )
         if result.returncode != 0:
-            logger.warning("mask_subject failed: %s — falling back to GrabCut.", result.stderr.strip())
-            return remove_background_grabcut(image)
+            raise RuntimeError(f"mask_subject failed: {result.stderr.strip()}")
         masked = cv2.imread(str(out), cv2.IMREAD_UNCHANGED)
         if masked is None:
-            logger.warning("mask_subject output unreadable — falling back to GrabCut.")
-            return remove_background_grabcut(image)
+            raise RuntimeError("mask_subject output unreadable.")
 
     logger.debug("Apple Vision subject masking applied.")
     return masked
@@ -109,7 +109,7 @@ def preprocess_image(
     Steps:
         1. Resize to cfg.max_size
         2. Denoise (if cfg.denoise_ksize > 0)
-        3. Background removal (cfg.bg_removal)
+        3. Background removal (Apple Vision only)
 
     Returns:
         Preprocessed image (RGB or RGBA uint8).
@@ -117,12 +117,6 @@ def preprocess_image(
     image = resize_to_max(image, cfg.max_size)
     image = denoise(image, cfg.denoise_ksize)
 
-    if cfg.bg_removal == "apple_vision":
-        image = remove_background_apple_vision(image)
-    elif cfg.bg_removal == "rembg":
-        image = remove_background_rembg(image)
-    elif cfg.bg_removal == "grabcut":
-        image = remove_background_grabcut(image)
-    # else "none" – skip
+    image = remove_background_apple_vision(image)
 
     return image
