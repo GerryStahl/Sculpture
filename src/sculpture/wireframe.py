@@ -126,6 +126,12 @@ def extract_wireframe(
 ) -> nx.Graph:
     """Full wireframe extraction pipeline."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Guard against degenerate meshes
+    if len(mesh.vertices) == 0 or len(mesh.triangles) == 0:
+        logger.warning("Mesh is degenerate; returning empty wireframe graph")
+        return nx.Graph()
+    
     vertices = np.asarray(mesh.vertices)
 
     edges = extract_feature_edges(mesh, cfg.feature_angle_deg)

@@ -27,8 +27,9 @@ def pcd_to_mesh_poisson(
     )
     # Remove low-density vertices (background / outlier artefacts)
     d = np.asarray(densities)
-    keep = d > np.quantile(d, 0.1)
-    mesh.remove_vertices_by_mask(~keep)
+    if len(d) > 0:
+        keep = d > np.quantile(d, 0.1)
+        mesh.remove_vertices_by_mask(~keep)
     mesh.remove_degenerate_triangles()
     mesh.remove_duplicated_triangles()
     mesh.remove_non_manifold_edges()
@@ -104,6 +105,12 @@ def build_mesh(
 ) -> o3d.geometry.TriangleMesh:
     """Full meshing pipeline: reconstruct → clean → simplify → save."""
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Guard against degenerate point clouds
+    if len(pcd.points) < 100:
+        logger.warning("Point cloud too small (%d pts); skipping mesh generation", len(pcd.points))
+        # Return an empty mesh
+        return o3d.geometry.TriangleMesh()
 
     if cfg.method == "poisson":
         mesh = pcd_to_mesh_poisson(pcd, depth=cfg.poisson_depth)
