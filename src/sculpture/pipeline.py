@@ -20,12 +20,19 @@ logger = logging.getLogger(__name__)
 def run_pipeline(
     config_path: Path | str | None = None,
     photos_dir: Path | str | None = None,
+    masked_dir: Path | str | None = None,
+    sculpture_id: str | None = None,
 ) -> dict:
     """Execute the full image → wireframe pipeline.
 
     Args:
         config_path: Optional path to a custom YAML config.
         photos_dir:  Override the photos directory from config.
+        masked_dir:  Directory of already-masked (bg-removed) images. When
+                     provided, preprocessing is skipped entirely and these
+                     images are fed directly into reconstruction.
+        sculpture_id: Explicit sculpture ID override (auto-detected from
+                      directory name when not supplied).
 
     Returns:
         Dict with keys ``point_cloud``, ``mesh``, ``wireframe_graph``.
@@ -41,48 +48,61 @@ def run_pipeline(
     # ── Paths ───────────────────────────────────────────────────────────────
     root = Path(config_path).parent.parent if config_path else Path.cwd()
     photos = Path(photos_dir) if photos_dir else root / cfg.paths.photos_dir
-    
-    # Detect sculpture ID from photos directory (e.g., "photos/adam_frames" → "adam")
-    sculpture_id = None
-    if photos.name.endswith("_frames"):
-        sculpture_id = photos.name.replace("_frames", "")
-    
+    masked = Path(masked_dir) if masked_dir else None
+
+    # Detect sculpture ID from directory name (e.g., "adam_frames" or "adam_masked" → "adam")
+    if sculpture_id is None:
+        src_dir = masked or photos
+        for suffix in ("_frames", "_masked"):
+            if src_dir.name.endswith(suffix):
+                sculpture_id = src_dir.name.replace(suffix, "")
+                break
+
     # Organize output by sculpture ID if detected
     base_output_dir = root / cfg.paths.output_dir
     if sculpture_id:
         output_dir = base_output_dir / sculpture_id
-        logger.info("Detected sculpture: %s (from photos dir: %s)", sculpture_id, photos.name)
+        logger.info("Detected sculpture: %s", sculpture_id)
     else:
         output_dir = base_output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # ── 1. Load images ──────────────────────────────────────────────────────
-    logger.info("Step 1/4 – Loading images from %s", photos)
-    image_paths = collect_images(photos)
-    if not image_paths:
-        raise FileNotFoundError(f"No images found in {photos}")
+    if masked:
+        logger.info("Step 1/4 – Loading pre-masked images from %s", masked)
+        image_paths = collect_images(masked)
+        if not image_paths:
+            raise FileNotFoundError(f"No images found in {masked}")
+    else:
+        logger.info("Step 1/4 – Loading images from %s", photos)
+        image_paths = collect_images(photos)
+        if not image_paths:
+            raise FileNotFoundError(f"No images found in {photos}")
 
     raw_images = [load_image(p) for p in image_paths]
     logger.info("Loaded %d image(s)", len(raw_images))
 
     # ── 2. Preprocess ───────────────────────────────────────────────────────
-    logger.info("Step 2/4 – Preprocessing images")
     processed: list = []
-    proc_dir = root / cfg.paths.data_processed
-    proc_dir.mkdir(parents=True, exist_ok=True)
-
-    for i, (img, src_path) in enumerate(zip(raw_images, image_paths)):
-        logger.info("  Preprocessing %s …", src_path.name)
-        processed_img = preprocess_image(img, cfg.preprocessing)
-        out_path = proc_dir / f"{src_path.stem}_processed.png"
-        save_image(processed_img[:, :, :3] if processed_img.ndim == 3
-                   and processed_img.shape[2] == 4 else processed_img, out_path)
-        processed.append(processed_img)
+    if masked:
+        logger.info("Step 2/4 – Skipping preprocessing (using pre-masked frames)")
+        processed = raw_images  # already background-removed
+    else:
+        logger.info("Step 2/4 – Preprocessing images")
+        proc_dir = root / cfg.paths.data_processed
+        proc_dir.mkdir(parents=True, exist_ok=True)
+        for img, src_path in zip(raw_images, image_paths):
+            logger.info("  Preprocessing %s …", src_path.name)
+            processed_img = preprocess_image(img, cfg.preprocessing)
+            out_path = proc_dir / f"{src_path.stem}_processed.png"
+            save_image(processed_img[:, :, :3] if processed_img.ndim == 3
+                       and processed_img.shape[2] == 4 else processed_img, out_path)
+            processed.append(processed_img)
 
     # ── 3. Reconstruct point cloud ──────────────────────────────────────────
     logger.info("Step 3/4 – Reconstructing point cloud (%s)", cfg.reconstruction.method)
     recon_dir = output_dir / "reconstruction"
-    pcd = reconstruct(processed, cfg.reconstruction, recon_dir)
+    pcd = reconstruct(processed, cfg.reconstruction, recon_dir, image_paths=image_paths)
 
     if len(pcd.points) == 0:
         logger.error("Point cloud is empty – pipeline cannot continue.")

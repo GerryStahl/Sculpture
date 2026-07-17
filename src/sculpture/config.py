@@ -35,6 +35,11 @@ class ReconstructionConfig(BaseModel):
     method: Literal["colmap", "opencv_sfm", "open3d"] = "open3d"
     colmap_bin: str = "colmap"
     use_depth_prior: bool = False
+    dense_backend: Literal["auto", "colmap", "openmvs", "none"] = "auto"
+    openmvs_interface_colmap_bin: str = "InterfaceCOLMAP"
+    openmvs_densify_bin: str = "DensifyPointCloud"
+    openmvs_resolution_level: int = 1
+    openmvs_number_views: int = 0
 
 
 class MeshingConfig(BaseModel):
@@ -69,7 +74,7 @@ class SculptureConfig(BaseModel):
 
 # ── Loader ────────────────────────────────────────────────────────────────────
 
-_DEFAULT_CONFIG = Path(__file__).parents[3] / "config" / "default.yaml"
+_DEFAULT_CONFIG = Path(__file__).parents[2] / "config" / "default.yaml"
 
 
 def load_config(config_path: Path | str | None = None) -> SculptureConfig:

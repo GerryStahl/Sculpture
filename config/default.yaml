@@ -26,20 +26,28 @@ calibration:
   calib_file: data/calibration/camera_intrinsics.json
 
 reconstruction:
-  # "colmap" | "opencv_sfm" | "open3d"
-  method: open3d
+  # "colmap" | "open3d" (open3d = legacy ORB heuristic, low quality)
+  method: colmap
   colmap_bin: colmap
-  # NeRF / depth-anything integration (future)
-  use_depth_prior: false
+  # Set to true to request dense MVS after sparse SfM.
+  # On Apple Silicon this prefers OpenMVS when installed, since COLMAP dense
+  # stereo requires CUDA and cannot run on Metal GPUs.
+  use_depth_prior: true
+  # "auto" | "openmvs" | "colmap" | "none"
+  dense_backend: auto
+  openmvs_interface_colmap_bin: InterfaceCOLMAP
+  openmvs_densify_bin: DensifyPointCloud
+  openmvs_resolution_level: 1
+  openmvs_number_views: 0
 
 meshing:
   # "ball_pivot" | "poisson" | "alpha_shape"
   method: poisson
-  poisson_depth: 9
+  poisson_depth: 10
   # Remove components smaller than this fraction of the largest
   min_component_frac: 0.01
   # Target face count after simplification (0 = skip)
-  simplify_faces: 50000
+  simplify_faces: 0
 
 wireframe:
   # Dihedral angle threshold (deg) to detect feature edges

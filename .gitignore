@@ -31,7 +31,8 @@ data/
 photos/*.mp4
 photos/*.MOV
 photos/*.mov
-photos/emergent4_frames/
+photos/*_frames/
+photos/*_frames*/
 *.egg-info/
 
 # Word / Office docs

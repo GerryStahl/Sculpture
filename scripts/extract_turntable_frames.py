@@ -8,7 +8,7 @@ import cv2  # noqa: E402
 
 VIDEO_PATH = Path("photos/emergent4.mp4")
 OUT_DIR = Path("photos/emergent4_frames")
-NUM_FRAMES = 30
+NUM_FRAMES = 120
 
 
 def compute_frame_indices(frame_count: int, num_frames: int = NUM_FRAMES) -> list[int]:
@@ -70,7 +70,7 @@ def extract_frames(video_path: Path, out_dir: Path, num_frames: int = NUM_FRAMES
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Extract a standardized 30-frame turntable set (~12° step)."
+        description="Extract a standardized 120-frame turntable set (~3° step)."
     )
     parser.add_argument(
         "--video",

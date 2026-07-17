@@ -25,9 +25,9 @@ This project follows the workflow below (matching the collection-to-Blender roun
    - **Project components:** `sculpture build-catalog`, [scripts/build_sculpture_catalog.py](scripts/build_sculpture_catalog.py), [src/sculpture/catalog.py](src/sculpture/catalog.py), [src/sculpture/cli.py](src/sculpture/cli.py)
    - **Status:** **Functioning**
 
-2. **Frame extraction (30 frames over 360°, ~12° step)**
+2. **Frame extraction (default 120 frames over 360°, configurable)**
    - **Manual user action:** Choose source video(s).
-   - **Automated action:** Extract a standardized set of exactly 30 evenly spaced frames (~12° angular step).
+   - **Automated action:** Extract a standardized set of evenly spaced frames (default: 120, ~3° angular step).
    - **Project components:** [scripts/extract_turntable_frames.py](scripts/extract_turntable_frames.py)
    - **Status:** **Functioning**
 
@@ -39,7 +39,7 @@ This project follows the workflow below (matching the collection-to-Blender roun
 
 4. **Mesh creation and store original mesh in catalog**
    - **Manual user action:** Trigger run from CLI.
-   - **Automated action:** Feature matching → reconstruction → meshing → thumbnail generation → catalog asset discovery.
+   - **Automated action:** COLMAP sparse SfM → optional dense reconstruction (OpenMVS/COLMAP) → meshing → thumbnail generation → catalog asset discovery.
    - **Project components:** `sculpture run`, [src/sculpture/pipeline.py](src/sculpture/pipeline.py), [src/sculpture/reconstruction.py](src/sculpture/reconstruction.py), [src/sculpture/meshing.py](src/sculpture/meshing.py), [src/sculpture/catalog.py](src/sculpture/catalog.py)
    - **Status:** **Functioning**
 
@@ -66,8 +66,8 @@ This project follows the workflow below (matching the collection-to-Blender roun
 Within steps 3–4, the pipeline automatically performs:
 
 - Image preprocessing (resize / denoise / masking)
-- Feature extraction and matching (ORB + BF matching + RANSAC)
-- Point cloud reconstruction (triangulation + filtering)
+- Feature extraction and matching (COLMAP SIFT + geometric verification)
+- Point cloud reconstruction (COLMAP SfM + optional dense reconstruction)
 - Mesh generation (Poisson + cleanup + simplification)
 - Wireframe extraction (feature/boundary edges)
 
@@ -82,21 +82,22 @@ Standardizes input images and removes unwanted background:
 
 #### 2. **Feature Matching**
 Establishes correspondences between images:
-- **ORB Detector:** Extracts ~5000 keypoints per image
-- **Brute-Force Matching:** Finds correspondences between consecutive frames
-- **RANSAC Filtering:** Removes outlier matches (threshold: 5px reprojection error)
+- **SIFT (COLMAP):** Extracts robust keypoints across all views
+- **Sequential Matching:** Prioritizes neighboring turntable frames (overlap configurable)
+- **Geometric Verification:** Rejects outliers before bundle adjustment
 
 #### 3. **3-D Reconstruction**
 Lifts 2-D feature matches into 3-D space:
-- **Triangulation:** Uses matched feature positions across views
-- **Downsampling:** Voxel grid (size 5mm) reduces point count
+- **Sparse SfM (COLMAP):** Estimates camera poses + sparse points via mapper/bundle adjustment
+- **Dense stage (optional):** Uses OpenMVS when available (`dense_backend: auto`), otherwise attempts COLMAP dense stereo
+- **Downsampling:** Voxel grid (size 5mm) reduces point count before meshing
 - **Normals:** Estimates surface normals for mesh generation
 
 #### 4. **Meshing**
 Converts point cloud to watertight surface:
-- **Poisson Reconstruction:** Implicit function fitting at depth 9 (fine detail)
+- **Poisson Reconstruction:** Implicit function fitting at depth 10 (default)
 - **Component Filtering:** Removes isolated pieces < 1% of largest
-- **Simplification:** Target ~50k triangles (configurable)
+- **Simplification:** Disabled by default for high-detail runs (`simplify_faces: 0`)
 - **Cleanup:** Removes degenerate triangles and non-manifold edges
 
 #### 5. **Wireframe Extraction**
@@ -146,7 +147,7 @@ sculpture/
 │   ├── emergent4.mp4             ← Sample turntable video
 │   ├── adam.mp4                  ← Torso sculpture video
 │   ├── athena.mp4                ← Torso sculpture video
-│   └── emergent4_frames/         ← Extracted 30 frames (generated)
+│   └── emergent4_frames/         ← Extracted frames (generated)
 ├── data/
 │   ├── raw/                      ← Original images
 │   ├── processed/                ← Preprocessed images (RGB)
@@ -183,7 +184,7 @@ sculpture/
 │   ├── test_config.py            ← Config loading tests
 │   ├── test_image_io.py          ← Image I/O tests
 │   ├── test_catalog.py           ← Catalog sync + provenance tests
-│   ├── test_extract_turntable_frames.py ← 30-frame extraction standard tests
+│   ├── test_extract_turntable_frames.py ← Frame extraction standard tests
 │   ├── test_preprocessing.py     ← Preprocessing unit tests
 │   ├── test_wireframe.py         ← Wireframe logic tests
 │   └── conftest.py               ← Pytest configuration
@@ -214,11 +215,19 @@ pip install -e ".[dev]"
 
 #### From MP4 (Extract frames first)
 ```bash
-# Extract 30 frames from turntable video
+# Extract default frame count (120)
 python scripts/extract_turntable_frames.py
+
+# Extract a custom frame count
+python scripts/extract_turntable_frames.py --video photos/adam.mp4 --out photos/adam_frames60 --num-frames 60
 
 # Run full pipeline on extracted frames
 sculpture run --photos photos/emergent4_frames
+```
+
+#### From Curated Masked Frames
+```bash
+sculpture run --masked-dir data/processed/adam_masked120 --sculpture-id adam120
 ```
 
 #### From Image Directory
@@ -505,13 +514,16 @@ preprocessing:
   denoise_ksize: 0            # Gaussian kernel (0 = skip)
 
 reconstruction:
-  method: open3d              # "colmap" | "opencv_sfm" | "open3d"
-  use_depth_prior: false      # Future: depth estimation
+   method: colmap              # "colmap" | "open3d"
+   use_depth_prior: true       # Request dense reconstruction when backend is available
+   dense_backend: auto         # "auto" | "openmvs" | "colmap" | "none"
+   openmvs_interface_colmap_bin: InterfaceCOLMAP
+   openmvs_densify_bin: DensifyPointCloud
 
 meshing:
   method: poisson             # "poisson" | "ball_pivot" | "alpha_shape"
-  poisson_depth: 9            # Higher = finer detail
-  simplify_faces: 50000       # Target triangle count
+   poisson_depth: 10           # Higher = finer detail
+   simplify_faces: 0           # 0 disables simplification for max detail
 
 wireframe:
   feature_angle_deg: 30.0     # Dihedral angle threshold
@@ -537,7 +549,7 @@ Expected output:
 Tests cover:
 - Config loading and validation
 - Catalog JSON/PKL synchronization
-- Standardized 30-frame extraction + manifest generation
+- Standardized frame extraction + manifest generation
 - Image I/O (HEIC/PNG loading, roundtrip)
 - Preprocessing (resize, denoise, background removal)
 - Wireframe logic (graph construction, edge filtering)
@@ -697,16 +709,15 @@ wf_graph = result['wireframe_graph']     # NetworkX Graph
 ## Known Limitations & Future Work
 
 ### Current
-- **Single-image fallback:** When <2 images provided, creates pseudo-PCD from silhouette edges (placeholder depth)
-- **COLMAP integration:** Requires manual export; planned for automatic wrapper
+- **Single-image fallback:** When <2 images provided, sparse fallback is still coarse
 - **Apple Vision dependency:** Requires macOS + compiled `tools/mask_subject` binary
-- **No GPU acceleration:** Uses CPU for all operations (slow for large point clouds)
+- **COLMAP dense stereo on macOS:** requires CUDA; falls back unless OpenMVS is installed
 
 ### Future Enhancements
-- [ ] COLMAP automatic pose estimation (RANSAC-robust SfM)
+- [x] COLMAP automatic pose estimation (RANSAC-robust SfM)
 - [ ] Depth estimation prior (MonoDepth2 / Depth Anything)
 - [ ] NeRF-based implicit reconstruction
-- [ ] GPU-accelerated point cloud processing (CUDA)
+- [ ] Metal-native dense backend documentation/packaging for macOS arm64
 - [ ] Web UI for visualization and parameter tuning
 - [ ] SVG wireframe projection for technical drawings
 
@@ -719,8 +730,8 @@ wf_graph = result['wireframe_graph']     # NetworkX Graph
 - [x] Add Apple Vision preflight check command (validate binary and fail early with actionable guidance)
 
 ### Next
-- [ ] Add automatic COLMAP wrapper for robust pose estimation path
-- [ ] Add depth prior integration behind `use_depth_prior`
+- [x] Add automatic COLMAP wrapper for robust pose estimation path
+- [x] Add dense backend selection (`auto` / `openmvs` / `colmap` / `none`)
 - [ ] Add optional GPU acceleration for reconstruction/meshing hot paths
 
 ### Later
@@ -731,7 +742,7 @@ wf_graph = result['wireframe_graph']     # NetworkX Graph
 ### CI Coverage
 
 - GitHub Actions now runs the test suite on every push and pull request.
-- CI now checks that standardized frame extraction still produces exactly 30 frames plus a manifest.
+- CI now checks that standardized frame extraction still produces exactly `NUM_FRAMES` frames plus a manifest.
 - CI now checks that `sculpture_catalog.json` and `sculpture_catalog.pkl` serialize the same catalog payload.
 
 ---

@@ -21,6 +21,12 @@ def _project_root() -> Path:
 def run(
     photos: Path | None = typer.Option(None, "--photos", "-p",
                                            help="Directory of input images."),
+    masked_dir: Path | None = typer.Option(None, "--masked-dir", "-m",
+                                           help="Directory of pre-masked (bg-removed) images. "
+                                                "Skips preprocessing entirely."),
+    sculpture_id: str | None = typer.Option(None, "--sculpture-id", "-s",
+                                           help="Explicit sculpture ID (auto-detected from "
+                                                "directory name when not supplied)."),
     config: Path | None = typer.Option(None, "--config", "-c",
                                            help="Path to YAML config file."),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -30,7 +36,12 @@ def run(
     from sculpture.utils.logging import setup_logging
     if verbose:
         setup_logging("DEBUG")
-    result = run_pipeline(config_path=config, photos_dir=photos)
+    result = run_pipeline(
+        config_path=config,
+        photos_dir=photos,
+        masked_dir=masked_dir,
+        sculpture_id=sculpture_id,
+    )
     rprint("[bold green]Pipeline finished.[/bold green]")
     if result.get("wireframe_graph"):
         g = result["wireframe_graph"]
