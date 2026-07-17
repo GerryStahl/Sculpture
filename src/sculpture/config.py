@@ -36,6 +36,8 @@ class ReconstructionConfig(BaseModel):
     colmap_bin: str = "colmap"
     use_depth_prior: bool = False
     dense_backend: Literal["auto", "colmap", "openmvs", "none"] = "auto"
+    min_dense_points_for_accept: int = 5_000
+    min_points_for_legacy_fallback: int = 100
     openmvs_interface_colmap_bin: str = "InterfaceCOLMAP"
     openmvs_densify_bin: str = "DensifyPointCloud"
     openmvs_resolution_level: int = 1

@@ -113,7 +113,11 @@ def build_mesh(
         return o3d.geometry.TriangleMesh()
 
     if cfg.method == "poisson":
-        mesh = pcd_to_mesh_poisson(pcd, depth=cfg.poisson_depth)
+        try:
+            mesh = pcd_to_mesh_poisson(pcd, depth=cfg.poisson_depth)
+        except RuntimeError as exc:
+            logger.warning("Poisson meshing failed (%s); falling back to ball pivot", exc)
+            mesh = pcd_to_mesh_ball_pivot(pcd)
     elif cfg.method == "ball_pivot":
         mesh = pcd_to_mesh_ball_pivot(pcd)
     elif cfg.method == "alpha_shape":

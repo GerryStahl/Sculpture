@@ -351,7 +351,15 @@ def reconstruct_colmap(
                 except RuntimeError as exc:
                     logger.warning("COLMAP dense failed (%s); falling back to sparse.", exc)
             if dense_result is not None:
-                return dense_result
+                dense_pts = len(dense_result.points)
+                if dense_pts >= cfg.min_dense_points_for_accept:
+                    return dense_result
+                logger.warning(
+                    "Dense backend produced only %d points (< %d); "
+                    "falling back to sparse COLMAP output.",
+                    dense_pts,
+                    cfg.min_dense_points_for_accept,
+                )
 
     # ── 5. Sparse fallback: read points3D binary or text ─────────────────────
     bin_path = best / "points3D.bin"
@@ -436,7 +444,29 @@ def reconstruct(
                 "Install with: brew install colmap", colmap_bin
             )
             return reconstruct_orb_fallback(images, output_dir)
-        return reconstruct_colmap(image_paths, cfg, output_dir)
+        pcd = reconstruct_colmap(image_paths, cfg, output_dir)
+        min_pts = max(0, cfg.min_points_for_legacy_fallback)
+        if min_pts > 0 and len(pcd.points) < min_pts:
+            logger.warning(
+                "COLMAP output has only %d points (< %d). "
+                "Trying legacy ORB fallback for a potentially usable wireframe.",
+                len(pcd.points),
+                min_pts,
+            )
+            orb_pcd = reconstruct_orb_fallback(images, output_dir)
+            if len(orb_pcd.points) > len(pcd.points):
+                logger.info(
+                    "Using ORB fallback output (%d points) over COLMAP (%d points)",
+                    len(orb_pcd.points),
+                    len(pcd.points),
+                )
+                return orb_pcd
+            logger.info(
+                "Keeping COLMAP output (%d points); ORB fallback had %d points",
+                len(pcd.points),
+                len(orb_pcd.points),
+            )
+        return pcd
 
     # open3d / opencv_sfm → legacy ORB fallback
     return reconstruct_orb_fallback(images, output_dir)

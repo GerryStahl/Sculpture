@@ -35,6 +35,11 @@ reconstruction:
   use_depth_prior: true
   # "auto" | "openmvs" | "colmap" | "none"
   dense_backend: auto
+  # If dense output has fewer points than this, fallback to sparse COLMAP.
+  min_dense_points_for_accept: 5000
+  # If final COLMAP output remains below this point count, try legacy ORB
+  # reconstruction as a last-resort to get a non-empty mesh/wireframe.
+  min_points_for_legacy_fallback: 100
   openmvs_interface_colmap_bin: InterfaceCOLMAP
   openmvs_densify_bin: DensifyPointCloud
   openmvs_resolution_level: 1

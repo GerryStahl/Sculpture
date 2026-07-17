@@ -70,7 +70,7 @@ def extract_frames(video_path: Path, out_dir: Path, num_frames: int = NUM_FRAMES
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Extract a standardized 120-frame turntable set (~3° step)."
+        description="Extract a standardized turntable frame set (default: 120 frames, ~3° step)."
     )
     parser.add_argument(
         "--video",
@@ -84,6 +84,12 @@ def parse_args() -> argparse.Namespace:
         default=OUT_DIR,
         help="Output directory for extracted frames",
     )
+    parser.add_argument(
+        "--num-frames",
+        type=int,
+        default=NUM_FRAMES,
+        help="Number of evenly spaced frames to extract (default: 120)",
+    )
     return parser.parse_args()
 
 
@@ -91,7 +97,7 @@ def main() -> None:
     args = parse_args()
     video_path: Path = args.video
     out_dir: Path = args.out
-    num_frames: int = NUM_FRAMES
+    num_frames: int = max(2, args.num_frames)
     manifest = extract_frames(video_path, out_dir, num_frames)
 
     cap = cv2.VideoCapture(str(video_path))

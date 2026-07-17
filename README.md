@@ -28,6 +28,7 @@ This project follows the workflow below (matching the collection-to-Blender roun
 2. **Frame extraction (default 120 frames over 360°, configurable)**
    - **Manual user action:** Choose source video(s).
    - **Automated action:** Extract a standardized set of evenly spaced frames (default: 120, ~3° angular step).
+   - **Practical guidance:** Use ~60 frames for quick iteration and 120 for final/high-detail runs or difficult subjects.
    - **Project components:** [scripts/extract_turntable_frames.py](scripts/extract_turntable_frames.py)
    - **Status:** **Functioning**
 
@@ -90,6 +91,7 @@ Establishes correspondences between images:
 Lifts 2-D feature matches into 3-D space:
 - **Sparse SfM (COLMAP):** Estimates camera poses + sparse points via mapper/bundle adjustment
 - **Dense stage (optional):** Uses OpenMVS when available (`dense_backend: auto`), otherwise attempts COLMAP dense stereo
+- **Automatic fallback chain:** If dense output is too small, the pipeline falls back to sparse COLMAP; if that is still too sparse, it can try the legacy ORB path as a last resort for a usable mesh/wireframe
 - **Downsampling:** Voxel grid (size 5mm) reduces point count before meshing
 - **Normals:** Estimates surface normals for mesh generation
 
@@ -509,26 +511,28 @@ Edit `config/default.yaml` to tune the pipeline:
 
 ```yaml
 preprocessing:
-  max_size: 2048              # Resize longest edge
-   bg_removal: apple_vision    # Apple Vision only (required)
-  denoise_ksize: 0            # Gaussian kernel (0 = skip)
+  max_size: 2048                  # Resize longest edge
+  bg_removal: apple_vision        # Apple Vision only (required)
+  denoise_ksize: 0                # Gaussian kernel (0 = skip)
 
 reconstruction:
-   method: colmap              # "colmap" | "open3d"
-   use_depth_prior: true       # Request dense reconstruction when backend is available
-   dense_backend: auto         # "auto" | "openmvs" | "colmap" | "none"
-   openmvs_interface_colmap_bin: InterfaceCOLMAP
-   openmvs_densify_bin: DensifyPointCloud
+  method: colmap                  # "colmap" | "open3d"
+  use_depth_prior: true           # Request dense reconstruction when backend is available
+  dense_backend: auto             # "auto" | "openmvs" | "colmap" | "none"
+  min_dense_points_for_accept: 5000
+  min_points_for_legacy_fallback: 100
+  openmvs_interface_colmap_bin: InterfaceCOLMAP
+  openmvs_densify_bin: DensifyPointCloud
 
 meshing:
-  method: poisson             # "poisson" | "ball_pivot" | "alpha_shape"
-   poisson_depth: 10           # Higher = finer detail
-   simplify_faces: 0           # 0 disables simplification for max detail
+  method: poisson                 # "poisson" | "ball_pivot" | "alpha_shape"
+  poisson_depth: 10               # Higher = finer detail
+  simplify_faces: 0               # 0 disables simplification for max detail
 
 wireframe:
-  feature_angle_deg: 30.0     # Dihedral angle threshold
-  min_edge_frac: 0.005        # Minimum edge length
-  export_format: obj          # "obj" | "svg" | "json_graph"
+  feature_angle_deg: 30.0         # Dihedral angle threshold
+  min_edge_frac: 0.005            # Minimum edge length
+  export_format: obj              # "obj" | "svg" | "json_graph"
 ```
 
 ---
@@ -575,7 +579,7 @@ Tests cover:
    ```bash
    python scripts/extract_turntable_frames.py
    ```
-   Generates 30 evenly spaced frames covering the full video duration.
+   Generates 120 evenly spaced frames by default. For faster iteration, use `--num-frames 60`; for final runs, keep 120.
 
 4. **Run Pipeline**
    ```bash
@@ -712,6 +716,7 @@ wf_graph = result['wireframe_graph']     # NetworkX Graph
 - **Single-image fallback:** When <2 images provided, sparse fallback is still coarse
 - **Apple Vision dependency:** Requires macOS + compiled `tools/mask_subject` binary
 - **COLMAP dense stereo on macOS:** requires CUDA; falls back unless OpenMVS is installed
+- **Dense-output variability:** Some subjects still produce weak OpenMVS clouds; the pipeline now falls back to sparse COLMAP and can try legacy ORB as a last resort
 
 ### Future Enhancements
 - [x] COLMAP automatic pose estimation (RANSAC-robust SfM)
