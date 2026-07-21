@@ -1,10 +1,19 @@
-# Sculpture AI: 3-D Wireframe Reconstruction from Multi-View Images
+# Sculpture AI
 
 An end-to-end Python pipeline for reconstructing 3-D wireframe models of sculptures from video or multi-view image sequences.
 
 ## Project Goals
 
-**Primary Objective:** Transform 2-D images of sculptures (captured from multiple angles) into 3-D point clouds, surface meshes, and wireframe representations suitable for CAD, 3-D modeling, and digital asset creation.
+** Primary Objective:** 
+- This project models my sculptures and then manipulates the models. 
+
+- The sculptures rotating 1 or 2 full turns on a turntable are captured by iPhone in mp4 videos. 
+
+- The videos are loaded in PhotoCatch, where a first and last frame are selected and a mesh model is generated. Much of the procedure for creating meshes of sculpture was also developed in VSC, but PhotoCatch does a much faster and better job of it.
+
+- Visual Studio Code (VSC) (with Claude) is used as a JSON repository of the videos, meshes and other project products. 
+
+- The mesh model is loaded into Blender. The Claude App assists in performing tasks in Blender. Blender can be used to manipulate and pose the sculpture mesh model, apply the original or new skins, add a background scene, distort or animate the sculpture, etc. 
 
 **Key Targets:**
 - Capture 20–40 images of a sculpture rotating on a turntable (covering 360° rotations)
