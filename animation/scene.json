@@ -1,0 +1,27 @@
+{
+  "fps": 30,
+  "duration_sec": 120,
+  "resolution": [1280, 720],
+  "engine": "BLENDER_EEVEE",
+  "samples": 64,
+  "background": { "color": [0.85, 0.85, 0.88], "strength": 1.0 },
+  "ground": { "enabled": true, "color": [0.8, 0.8, 0.83], "size": 60 },
+  "light": { "sun_strength": 3.0, "sun_rotation_deg": [50, 0, 30] },
+  "camera": { "location": [0, -12, 4.5], "target": [0, 0, 1.0], "lens": 35 },
+  "sculptures": [
+    {
+      "name": "emergent4",
+      "blend": "data/blender_exports/emergent4/emergent4.blend",
+      "object": "emergent4",
+      "height": 2.0,
+      "skin_color": null,
+      "spin_period_sec": 12,
+      "spin_direction": 1,
+      "path": {
+        "points": [[-3.5, 0], [-1.5, 2.5], [1.5, 2], [3.5, -0.5], [1.5, -2.5], [-1.5, -2]],
+        "speed": 0.5,
+        "start_offset": 0.0
+      }
+    }
+  ]
+}

@@ -98,6 +98,25 @@ def simplify_mesh(
     return mesh
 
 
+def _prepare_mesh_point_cloud(
+    pcd: o3d.geometry.PointCloud,
+) -> o3d.geometry.PointCloud:
+    """Downsample very dense point clouds before meshing."""
+    if len(pcd.points) <= 250_000:
+        return pcd
+
+    dense_pcd = pcd.voxel_down_sample(voxel_size=0.01)
+    if not dense_pcd.has_normals():
+        dense_pcd.estimate_normals()
+        dense_pcd.orient_normals_consistent_tangent_plane(10)
+    logger.info(
+        "Downsampled mesh input from %d to %d points",
+        len(pcd.points),
+        len(dense_pcd.points),
+    )
+    return dense_pcd
+
+
 def build_mesh(
     pcd: o3d.geometry.PointCloud,
     cfg: MeshingConfig,
@@ -105,6 +124,8 @@ def build_mesh(
 ) -> o3d.geometry.TriangleMesh:
     """Full meshing pipeline: reconstruct → clean → simplify → save."""
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    pcd = _prepare_mesh_point_cloud(pcd)
 
     # Guard against degenerate point clouds
     if len(pcd.points) < 100:
