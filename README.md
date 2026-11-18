@@ -31,8 +31,8 @@ The `animation/` folder turns finished sculpture meshes into a video. It uses he
 ### Approach
 
 1. **Model each sculpture.** `animation/make_meshes.py` extracts frames from the turntable video and builds a textured model with Apple Object Capture (the engine behind PhotoCatch) through `tools/photogrammetry`. A PhotoCatch USDZ or OBJ export placed in `data/blender_exports/<name>/` works too. The original skin comes with the mesh.
-2. **Clean and prepare the mesh** with `animation/prep_mesh.py`. It drops floating pieces, cuts the stand off at a per-sculpture height (`cut_frac` in `animation/meshes.json`) and seals the cut, centres the sculpture on its base, scales it to a standard height, reduces very dense meshes, and saves `<name>.blend` plus a preview image. A guide image with a labelled line every 5% of height makes the cut height easy to choose.
-3. **Describe the scene** in `animation/scene.json`: background colour, floor, light, camera, video length and frame rate, and for each sculpture its height, optional skin colour, spin period, and closed path with speed.
+2. **Clean and prepare the mesh** with `animation/prep_mesh.py`. It drops floating pieces, cuts the stand off at a per-sculpture height (`cut_frac` in `animation/meshes.json`) and seals the cut, centers the sculpture on its base, scales it to a standard height, reduces very dense meshes, and saves `<name>.blend` plus a preview image. A guide image with a labeled line every 5% of height makes the cut height easy to choose.
+3. **Describe the scene** in `animation/scene.json`: background (a solid color or an HDRI), floor, light, camera, video length and frame rate, and for each sculpture its height, optional skin color, spin period, and closed path with speed. The default scene has five sculptures in five lanes across the screen, alternating direction. `animation/make_hdri.py` generates the abstract pale green and blue flowing HDRI background.
 4. **Build and render** with `animation/build_scene.py`. Each sculpture spins in place at a constant rate and moves along its path at constant speed. Output can be a single still, a low-resolution preview video, or the full video.
 
 ### Run
@@ -44,20 +44,25 @@ BLENDER=/Applications/Blender.app/Contents/MacOS/Blender
 (cd tools/photogrammetry && swiftc -O -swift-version 5 main.swift -framework RealityKit -o photogrammetry)
 python animation/make_meshes.py                  # frames + model + cut-height guide for each sculpture
 # look at data/blender_exports/<name>/<name>_guide.png, set cut_frac in meshes.json, then:
-python animation/make_meshes.py --steps prep     # clean, normalise, save .blend and preview
+python animation/make_meshes.py --steps prep     # clean, normalize, save .blend and preview
+python animation/make_hdri.py                    # generate the HDRI background (data/animation/hdri/)
 
-# Check composition with one frame, then a fast preview, then the full render
+# Check composition with one frame, then a half-size preview, then the full render
 $BLENDER --background --python animation/build_scene.py -- animation/scene.json --still 1 --out data/animation/still.png
-$BLENDER --background --python animation/build_scene.py -- animation/scene.json --preview --out data/animation/preview.mp4
-$BLENDER --background --python animation/build_scene.py -- animation/scene.json --out data/animation/final.mp4
+python animation/render_video.py --preview       # -> data/animation/final_preview.mp4
+python animation/render_video.py                 # -> data/animation/final.mp4 (resumable)
 ```
+
+`render_video.py` writes PNG frames to `data/animation/frames_final/` and encodes them with ffmpeg (H.264 MP4). If a long render is interrupted, run the same command again and only the missing frames are rendered. Everything runs locally on the Mac, so rendering has no cloud or GitHub cost.
+
+The scene renders with Cycles on the Apple GPU, because only Cycles has a true shadow catcher over an HDRI. A full 2-minute render takes a few hours (about 3 seconds per frame); `--preview` takes under an hour. Set `"engine": "BLENDER_EEVEE"` in `scene.json` for a fast preview without floor shadows. The script also reports how close sculptures come to each other so paths can be adjusted.
 
 Use `rotate_x` in `meshes.json` (for example 90) if a mesh imports lying on its side. Add `--save-blend <path>` to `build_scene.py` to open the built scene in Blender and adjust it by hand.
 
 ### Status and next steps
 
 - Working: scripted mesh creation and stand cleanup (emergent0–emergent4 prepared), scene building, constant-speed path motion, continuous spin, still and video rendering.
-- Next: first full render with the prepared emergent meshes, then add more sculptures.
+- Next: review the first full render of the five emergent sculptures, then add more sculptures.
 - Later: HDRI or photo backgrounds, shadow tuning, and a small interface to choose sculptures, skins, backgrounds, paths and speeds from lists and sliders.
 
 ## Pipeline Overview
@@ -225,7 +230,8 @@ sculpture/
 ├── animation/
 │   ├── make_meshes.py            ← Videos → frames → Object Capture model → cleaned .blend
 │   ├── meshes.json               ← Per-sculpture video, detail, rotation, stand cut height
-│   ├── prep_mesh.py              ← Blender: clean (debris, stand), normalise, save mesh
+│   ├── prep_mesh.py              ← Blender: clean (debris, stand), normalize, save mesh
+│   ├── make_hdri.py              ← Generates the flowing pale green/blue HDRI background
 │   ├── build_scene.py            ← Blender: build scene from JSON, render still/video
 │   └── scene.json                ← Sculptures, paths, speeds, background, light, camera
 ├── tools/

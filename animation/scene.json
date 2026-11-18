@@ -2,25 +2,97 @@
   "fps": 30,
   "duration_sec": 120,
   "resolution": [1280, 720],
-  "engine": "BLENDER_EEVEE",
-  "samples": 64,
-  "background": { "color": [0.85, 0.85, 0.88], "strength": 1.0 },
-  "ground": { "enabled": true, "color": [0.8, 0.8, 0.83], "size": 60 },
-  "light": { "sun_strength": 3.0, "sun_rotation_deg": [50, 0, 30] },
-  "camera": { "location": [0, -12, 4.5], "target": [0, 0, 1.0], "lens": 35 },
+  "engine": "CYCLES",
+  "samples": 32,
+  "view_transform": "Standard",
+  "background": {
+    "hdri": "data/animation/hdri/pale_flow.hdr",
+    "rotation_deg": 0,
+    "strength": 1.0
+  },
+  "ground": {
+    "enabled": true,
+    "shadow_catcher": true,
+    "size": 120
+  },
+  "light": {
+    "sun_strength": 2.0,
+    "sun_rotation_deg": [50, 0, 30]
+  },
+  "camera": {
+    "location": [0, -26, 9],
+    "target": [0, -2, 0.6],
+    "lens": 35
+  },
   "sculptures": [
     {
       "name": "emergent4",
       "blend": "data/blender_exports/emergent4/emergent4.blend",
       "object": "emergent4",
-      "height": 2.0,
+      "height": 5.2,
+      "skin_color": null,
+      "spin_period_sec": 14,
+      "spin_direction": 1,
+      "path": {
+        "points": [[13.0, 8.0], [9.19, 8.42], [0.0, 8.6], [-9.19, 8.42], [-13.0, 8.0], [-9.19, 7.58], [-0.0, 7.4], [9.19, 7.58]],
+        "speed": 1.24,
+        "start_offset": 0.24
+      }
+    },
+    {
+      "name": "emergent0",
+      "blend": "data/blender_exports/emergent0/emergent0.blend",
+      "object": "emergent0",
+      "height": 4.8,
+      "skin_color": null,
+      "spin_period_sec": 10,
+      "spin_direction": -1,
+      "path": {
+        "points": [[11.5, 3.5], [8.13, 3.92], [0.0, 4.1], [-8.13, 3.92], [-11.5, 3.5], [-8.13, 3.08], [-0.0, 2.9], [8.13, 3.08]],
+        "speed": -1.11,
+        "start_offset": 0.55
+      }
+    },
+    {
+      "name": "emergent3",
+      "blend": "data/blender_exports/emergent3/emergent3.blend",
+      "object": "emergent3",
+      "height": 4,
       "skin_color": null,
       "spin_period_sec": 12,
       "spin_direction": 1,
       "path": {
-        "points": [[-3.5, 0], [-1.5, 2.5], [1.5, 2], [3.5, -0.5], [1.5, -2.5], [-1.5, -2]],
-        "speed": 0.5,
-        "start_offset": 0.0
+        "points": [[10.0, -1.0], [7.07, -0.58], [0.0, -0.4], [-7.07, -0.58], [-10.0, -1.0], [-7.07, -1.42], [-0.0, -1.6], [7.07, -1.42]],
+        "speed": 1.02,
+        "start_offset": 0.84
+      }
+    },
+    {
+      "name": "emergent1",
+      "blend": "data/blender_exports/emergent1/emergent1.blend",
+      "object": "emergent1",
+      "height": 4,
+      "skin_color": null,
+      "spin_period_sec": 8,
+      "spin_direction": -1,
+      "path": {
+        "points": [[8.5, -5.5], [6.01, -5.08], [0.0, -4.9], [-6.01, -5.08], [-8.5, -5.5], [-6.01, -5.92], [-0.0, -6.1], [6.01, -5.92]],
+        "speed": -0.79,
+        "start_offset": 0.35
+      }
+    },
+    {
+      "name": "emergent2",
+      "blend": "data/blender_exports/emergent2/emergent2.blend",
+      "object": "emergent2",
+      "height": 3.2,
+      "skin_color": null,
+      "spin_period_sec": 16,
+      "spin_direction": 1,
+      "path": {
+        "points": [[7.0, -10.0], [4.95, -9.58], [0.0, -9.4], [-4.95, -9.58], [-7.0, -10.0], [-4.95, -10.42], [-0.0, -10.6], [4.95, -10.42]],
+        "speed": 0.58,
+        "start_offset": 0.1
       }
     }
   ]

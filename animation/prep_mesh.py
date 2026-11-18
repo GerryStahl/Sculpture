@@ -1,12 +1,12 @@
-"""Blender script: import a sculpture mesh, clean it, normalise it, and save it as a .blend.
+"""Blender script: import a sculpture mesh, clean it, normalize it, and save it as a .blend.
 
 Run:
   $BLENDER --background --python animation/prep_mesh.py -- RAW.usdz OUT.blend \
       --cut-frac 0.15 --preview PREVIEW.png
 
 Cleaning: drop floating pieces, cut away the stand below `--cut-frac` of the sculpture's height
-(sealing the cut), then centre on the base at z=0 and scale to `--height`. With `--guide PNG`,
-nothing is saved; a front view with a labelled line every 5% of height is rendered so the cut
+(sealing the cut), then center on the base at z=0 and scale to `--height`. With `--guide PNG`,
+nothing is saved; a front view with a labeled line every 5% of height is rendered so the cut
 fraction can be chosen by eye.
 """
 
@@ -33,6 +33,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--faces", type=int, default=150_000, help="Decimate above this (0 = off)")
     p.add_argument("--rotate-x", type=float, default=0.0, help="Degrees about X to stand it up")
     p.add_argument("--cut-frac", type=float, default=0.0, help="Remove this fraction of the height")
+    p.add_argument(
+        "--max-texture", type=int, default=2048, help="Downscale larger textures (0 = off)"
+    )
     p.add_argument("--guide", type=Path, default=None, help="Render a cut-height guide and stop")
     p.add_argument("--preview", type=Path, default=None, help="Render the cleaned result")
     return p.parse_args(argv)
@@ -76,8 +79,8 @@ def join_meshes() -> bpy.types.Object:
     return obj
 
 
-def normalise(obj: bpy.types.Object, height: float, rotate_x_deg: float = 0.0) -> None:
-    """Stand the mesh on z=0, centred in x/y, scaled so its height is `height`."""
+def normalize(obj: bpy.types.Object, height: float, rotate_x_deg: float = 0.0) -> None:
+    """Stand the mesh on z=0, centered in x/y, scaled so its height is `height`."""
     mesh = obj.data
     if rotate_x_deg:
         mesh.transform(Matrix.Rotation(math.radians(rotate_x_deg), 4, "X"))
@@ -85,9 +88,9 @@ def normalise(obj: bpy.types.Object, height: float, rotate_x_deg: float = 0.0) -
     xs = [v.co.x for v in mesh.vertices]
     ys = [v.co.y for v in mesh.vertices]
     zs = [v.co.z for v in mesh.vertices]
-    centre = Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, min(zs)))
+    center = Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, min(zs)))
     scale = height / (max(zs) - min(zs))
-    mesh.transform(Matrix.Scale(scale, 4) @ Matrix.Translation(-centre))
+    mesh.transform(Matrix.Scale(scale, 4) @ Matrix.Translation(-center))
 
 
 def keep_largest_island(bm: bmesh.types.BMesh) -> int:
@@ -104,10 +107,10 @@ def keep_largest_island(bm: bmesh.types.BMesh) -> int:
             current = stack.pop()
             island.append(current)
             for edge in current.edges:
-                for neighbour in edge.link_faces:
-                    if neighbour.index not in seen:
-                        seen.add(neighbour.index)
-                        stack.append(neighbour)
+                for neighbor in edge.link_faces:
+                    if neighbor.index not in seen:
+                        seen.add(neighbor.index)
+                        stack.append(neighbor)
         islands.append(island)
 
     if len(islands) > 1:
@@ -153,13 +156,25 @@ def decimate(obj: bpy.types.Object, max_faces: int) -> None:
     bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
-def glow_material(name: str, colour: tuple[float, float, float]) -> bpy.types.Material:
+def limit_textures(max_size: int) -> None:
+    """Downscale oversized textures so many sculptures fit in GPU memory and render quickly."""
+    for image in bpy.data.images:
+        if image.type != "IMAGE" or not image.packed_file:
+            continue
+        width, height = image.size
+        if max(width, height) > max_size:
+            ratio = max_size / max(width, height)
+            image.scale(round(width * ratio), round(height * ratio))
+            image.pack()
+
+
+def glow_material(name: str, color: tuple[float, float, float]) -> bpy.types.Material:
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     nodes.clear()
     emission = nodes.new("ShaderNodeEmission")
-    emission.inputs["Color"].default_value = (*colour, 1.0)
+    emission.inputs["Color"].default_value = (*color, 1.0)
     output = nodes.new("ShaderNodeOutputMaterial")
     links.new(emission.outputs["Emission"], output.inputs["Surface"])
     return mat
@@ -238,7 +253,7 @@ def main() -> None:
     import_mesh(args.input)
     obj = join_meshes()
     clean(obj, cut_z=None)
-    normalise(obj, args.height, args.rotate_x)
+    normalize(obj, args.height, args.rotate_x)
 
     if args.guide:
         bpy.ops.object.shade_smooth()
@@ -248,13 +263,15 @@ def main() -> None:
 
     if args.cut_frac > 0:
         clean(obj, cut_z=args.cut_frac * args.height)
-        normalise(obj, args.height)
+        normalize(obj, args.height)
     decimate(obj, args.faces)
 
     obj.name = args.name or args.output.stem
     obj.data.name = obj.name
     bpy.ops.object.shade_smooth()
     bpy.ops.file.pack_all()
+    if args.max_texture > 0:
+        limit_textures(args.max_texture)
 
     if args.preview:
         render_png(obj, args.preview, guide=False)

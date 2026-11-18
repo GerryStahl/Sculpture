@@ -4,7 +4,7 @@ Steps, per sculpture listed in animation/meshes.json:
   frames  extract turntable frames from the video
   mesh    build a textured 3-D model from the frames (Apple Object Capture, as in PhotoCatch)
   guide   render a front view with a line every 5% of height, to pick that sculpture's cut_frac
-  prep    cut the stand off, drop floating pieces, normalise, and save <name>.blend + preview PNG
+  prep    cut the stand off, drop floating pieces, normalize, and save <name>.blend + preview PNG
 
 Typical use (from the project root, in the project virtualenv):
   python animation/make_meshes.py                      # frames + mesh + guide for all sculptures

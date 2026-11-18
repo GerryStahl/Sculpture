@@ -25,7 +25,7 @@ def pcd_to_mesh_poisson(
     mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
         pcd, depth=depth
     )
-    # Remove low-density vertices (background / outlier artefacts)
+    # Remove low-density vertices (background / outlier artifacts)
     d = np.asarray(densities)
     if len(d) > 0:
         keep = d > np.quantile(d, 0.1)
