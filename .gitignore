@@ -39,3 +39,6 @@ photos/*_frames*/
 *.docx
 *.xlsx
 *.pptx
+
+# Compiled Object Capture CLI
+tools/photogrammetry/photogrammetry

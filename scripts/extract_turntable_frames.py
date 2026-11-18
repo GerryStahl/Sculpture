@@ -11,24 +11,35 @@ OUT_DIR = Path("photos/emergent4_frames")
 NUM_FRAMES = 120
 
 
-def compute_frame_indices(frame_count: int, num_frames: int = NUM_FRAMES) -> list[int]:
+def compute_frame_indices(
+    frame_count: int,
+    num_frames: int = NUM_FRAMES,
+    start_idx: int | None = None,
+    end_idx: int | None = None,
+) -> list[int]:
     """Compute standardized frame indices for a turntable video."""
     if frame_count <= 0:
         raise ValueError("Video has no frames")
 
-    start_idx = int(frame_count * 0.05)
-    end_idx = int(frame_count * 0.95)
+    if start_idx is None or end_idx is None:
+        start_idx = int(frame_count * 0.05)
+        end_idx = int(frame_count * 0.95)
     if end_idx <= start_idx:
         start_idx, end_idx = 0, frame_count - 1
 
     indices = [
-        round(start_idx + i * (end_idx - start_idx) / (num_frames - 1))
-        for i in range(num_frames)
+        round(start_idx + i * (end_idx - start_idx) / (num_frames - 1)) for i in range(num_frames)
     ]
     return [max(0, min(frame_count - 1, idx)) for idx in indices]
 
 
-def extract_frames(video_path: Path, out_dir: Path, num_frames: int = NUM_FRAMES) -> list[dict[str, float | int | str | None]]:
+def extract_frames(
+    video_path: Path,
+    out_dir: Path,
+    num_frames: int = NUM_FRAMES,
+    start_sec: float | None = None,
+    end_sec: float | None = None,
+) -> list[dict[str, float | int | str | None]]:
     """Extract standardized frames and return manifest entries."""
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -39,7 +50,11 @@ def extract_frames(video_path: Path, out_dir: Path, num_frames: int = NUM_FRAMES
     try:
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = cap.get(cv2.CAP_PROP_FPS)
-        indices = compute_frame_indices(frame_count, num_frames)
+        start_idx = end_idx = None
+        if start_sec is not None or end_sec is not None:
+            start_idx = round((start_sec or 0.0) * fps)
+            end_idx = round(end_sec * fps) if end_sec is not None else frame_count - 1
+        indices = compute_frame_indices(frame_count, num_frames, start_idx, end_idx)
 
         manifest: list[dict[str, float | int | str | None]] = []
         for i, frame_idx in enumerate(indices, start=1):
@@ -90,6 +105,18 @@ def parse_args() -> argparse.Namespace:
         default=NUM_FRAMES,
         help="Number of evenly spaced frames to extract (default: 120)",
     )
+    parser.add_argument(
+        "--start-sec",
+        type=float,
+        default=None,
+        help="Start of the turntable run in seconds (default: 5%% into the video)",
+    )
+    parser.add_argument(
+        "--end-sec",
+        type=float,
+        default=None,
+        help="End of the turntable run in seconds (default: 95%% into the video)",
+    )
     return parser.parse_args()
 
 
@@ -98,7 +125,7 @@ def main() -> None:
     video_path: Path = args.video
     out_dir: Path = args.out
     num_frames: int = max(2, args.num_frames)
-    manifest = extract_frames(video_path, out_dir, num_frames)
+    manifest = extract_frames(video_path, out_dir, num_frames, args.start_sec, args.end_sec)
 
     cap = cv2.VideoCapture(str(video_path))
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))

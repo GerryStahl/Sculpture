@@ -1,0 +1,7 @@
+{
+  "emergent0": { "video": "photos/emergent0.mp4", "start_sec": null, "end_sec": null, "num_frames": 120, "detail": "full", "rotate_x": 0, "height": 1.0, "cut_frac": 0.07 },
+  "emergent1": { "video": "photos/emergent1.mp4", "start_sec": null, "end_sec": null, "num_frames": 120, "detail": "full", "rotate_x": 0, "height": 1.0, "cut_frac": 0.02 },
+  "emergent2": { "video": "photos/emergent2.mp4", "start_sec": null, "end_sec": null, "num_frames": 120, "detail": "full", "rotate_x": 0, "height": 1.0, "cut_frac": 0.10 },
+  "emergent3": { "video": "photos/emergent3.mp4", "start_sec": null, "end_sec": null, "num_frames": 120, "detail": "full", "rotate_x": 0, "height": 1.0, "cut_frac": 0.05 },
+  "emergent4": { "video": "photos/emergent4.mp4", "start_sec": null, "end_sec": null, "num_frames": 120, "detail": "full", "rotate_x": 0, "height": 1.0, "cut_frac": 0.06 }
+}

@@ -30,8 +30,8 @@ The `animation/` folder turns finished sculpture meshes into a video. It uses he
 
 ### Approach
 
-1. **Model each sculpture in PhotoCatch.** Export the textured mesh (USDZ or OBJ) to `data/blender_exports/<name>/`. The original skin comes with the mesh.
-2. **Prepare the mesh** with `animation/prep_mesh.py`. It imports the file, joins its parts, centres it on its base, scales it to a standard height, reduces very dense meshes, and saves `<name>.blend`.
+1. **Model each sculpture.** `animation/make_meshes.py` extracts frames from the turntable video and builds a textured model with Apple Object Capture (the engine behind PhotoCatch) through `tools/photogrammetry`. A PhotoCatch USDZ or OBJ export placed in `data/blender_exports/<name>/` works too. The original skin comes with the mesh.
+2. **Clean and prepare the mesh** with `animation/prep_mesh.py`. It drops floating pieces, cuts the stand off at a per-sculpture height (`cut_frac` in `animation/meshes.json`) and seals the cut, centres the sculpture on its base, scales it to a standard height, reduces very dense meshes, and saves `<name>.blend` plus a preview image. A guide image with a labelled line every 5% of height makes the cut height easy to choose.
 3. **Describe the scene** in `animation/scene.json`: background colour, floor, light, camera, video length and frame rate, and for each sculpture its height, optional skin colour, spin period, and closed path with speed.
 4. **Build and render** with `animation/build_scene.py`. Each sculpture spins in place at a constant rate and moves along its path at constant speed. Output can be a single still, a low-resolution preview video, or the full video.
 
@@ -40,9 +40,11 @@ The `animation/` folder turns finished sculpture meshes into a video. It uses he
 ```bash
 BLENDER=/Applications/Blender.app/Contents/MacOS/Blender
 
-# Prepare a mesh exported from PhotoCatch
-$BLENDER --background --python animation/prep_mesh.py -- \
-    data/blender_exports/emergent4/emergent4.usdz data/blender_exports/emergent4/emergent4.blend
+# Build meshes from the videos listed in animation/meshes.json (needs the Swift tool built once)
+(cd tools/photogrammetry && swiftc -O -swift-version 5 main.swift -framework RealityKit -o photogrammetry)
+python animation/make_meshes.py                  # frames + model + cut-height guide for each sculpture
+# look at data/blender_exports/<name>/<name>_guide.png, set cut_frac in meshes.json, then:
+python animation/make_meshes.py --steps prep     # clean, normalise, save .blend and preview
 
 # Check composition with one frame, then a fast preview, then the full render
 $BLENDER --background --python animation/build_scene.py -- animation/scene.json --still 1 --out data/animation/still.png
@@ -50,12 +52,12 @@ $BLENDER --background --python animation/build_scene.py -- animation/scene.json 
 $BLENDER --background --python animation/build_scene.py -- animation/scene.json --out data/animation/final.mp4
 ```
 
-Use `--rotate-x 90` with `prep_mesh.py` if a mesh imports lying on its side. Add `--save-blend <path>` to `build_scene.py` to open the built scene in Blender and adjust it by hand.
+Use `rotate_x` in `meshes.json` (for example 90) if a mesh imports lying on its side. Add `--save-blend <path>` to `build_scene.py` to open the built scene in Blender and adjust it by hand.
 
 ### Status and next steps
 
-- Working: mesh preparation, scene building, constant-speed path motion, continuous spin, still and video rendering (tested with a stand-in mesh).
-- Next: first full render with `emergent4`, then prepare more sculptures from PhotoCatch.
+- Working: scripted mesh creation and stand cleanup (emergent0–emergent4 prepared), scene building, constant-speed path motion, continuous spin, still and video rendering.
+- Next: first full render with the prepared emergent meshes, then add more sculptures.
 - Later: HDRI or photo backgrounds, shadow tuning, and a small interface to choose sculptures, skins, backgrounds, paths and speeds from lists and sliders.
 
 ## Pipeline Overview
@@ -221,10 +223,14 @@ sculpture/
 │   ├── extract_turntable_frames.py    ← Extract frames from MP4
 │   └── apple_mask_frames.py          ← Test Apple Vision masking on frames
 ├── animation/
-│   ├── prep_mesh.py              ← Blender: import, normalise and save a PhotoCatch mesh
+│   ├── make_meshes.py            ← Videos → frames → Object Capture model → cleaned .blend
+│   ├── meshes.json               ← Per-sculpture video, detail, rotation, stand cut height
+│   ├── prep_mesh.py              ← Blender: clean (debris, stand), normalise, save mesh
 │   ├── build_scene.py            ← Blender: build scene from JSON, render still/video
 │   └── scene.json                ← Sculptures, paths, speeds, background, light, camera
 ├── tools/
+│   ├── photogrammetry/
+│   │   └── main.swift            ← Object Capture CLI (frames → textured USDZ)
 │   └── mask_subject/
 │       ├── main.swift            ← Apple Vision VisionKit CLI (Swift)
 │       └── mask_subject          ← Compiled binary
