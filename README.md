@@ -32,8 +32,8 @@ The `animation/` folder turns finished sculpture meshes into a video. It uses he
 
 1. **Model each sculpture.** `animation/make_meshes.py` extracts frames from the turntable video and builds a textured model with Apple Object Capture (the engine behind PhotoCatch) through `tools/photogrammetry`. A PhotoCatch USDZ or OBJ export placed in `data/blender_exports/<name>/` works too. The original skin comes with the mesh.
 2. **Clean and prepare the mesh** with `animation/prep_mesh.py`. It drops floating pieces, cuts the stand off at a per-sculpture height (`cut_frac` in `animation/meshes.json`) and seals the cut, centers the sculpture on its base, scales it to a standard height, reduces very dense meshes, and saves `<name>.blend` plus a preview image. A guide image with a labeled line every 5% of height makes the cut height easy to choose.
-3. **Describe the scene** in `animation/scene.json`: background (a solid color or an HDRI), floor, light, camera, video length and frame rate, and for each sculpture its height, optional skin color, spin period, and closed path with speed. The default scene has five sculptures in five lanes across the screen, alternating direction. `animation/make_hdri.py` generates the abstract pale green and blue flowing HDRI background.
-4. **Build and render** with `animation/build_scene.py`. Each sculpture spins in place at a constant rate and moves along its path at constant speed. Output can be a single still, a low-resolution preview video, or the full video.
+3. **Describe the scene** in `animation/scene.json`: background (a solid color or an HDRI), floor, light, camera, video length and frame rate, and for each sculpture its height, skin (the original photographed texture by default, or `"skin": "gold"`, `bronze`, `copper`, `brass`, `tin`, `silver` or `chrome`; `skin_color` gives a flat color), spin period, and closed path with speed. The default scene has five sculptures moving as lane traffic: seven lanes at different depths, each sculpture gliding along a lane and, at a lane end, curving over to the most open free lane (`animation/traffic.py`). Each sculpture has a starting lane, direction, start position and speed; the choice of lane keeps every pair of sculptures apart for the whole video. `animation/make_hdri.py` generates the abstract pale green and blue flowing HDRI background.
+4. **Build and render** with `animation/build_scene.py`. Each sculpture spins in place at a constant rate and moves at constant speed, along a fixed closed path or as lane traffic. Output can be a single still, a low-resolution preview video, or the full video.
 
 ### Run
 
@@ -51,7 +51,18 @@ python animation/make_hdri.py                    # generate the HDRI background 
 $BLENDER --background --python animation/build_scene.py -- animation/scene.json --still 1 --out data/animation/still.png
 python animation/render_video.py --preview       # -> data/animation/final_preview.mp4
 python animation/render_video.py                 # -> data/animation/final.mp4 (resumable)
+python animation/render_video.py --look mixed_materials   # saved skin set -> final_mixed_materials.mp4
+
+# Five identical swinging sculptures (animation/scene_swingers.json), saved look rainbow_glass
+python animation/render_video.py --config animation/scene_swingers.json --look rainbow_glass --preview --seconds 62
+python animation/render_video.py --config animation/scene_swingers.json --look rainbow_glass
 ```
+
+**Looks:** a look is a saved set of skins, one JSON file per set in `animation/looks/` (for example `mixed_materials.json`, `metals.json`) mapping each sculpture to a skin. Add a file to keep a new combination, then render it with `--look <name>` (both `build_scene.py` and `render_video.py` accept it). A sculpture can also be split into its distinct masses (`python animation/segment_parts.py emergent3`, settings in `animation/parts.json`), after which its look entry can be a list with one skin per mass, numbered from the top down, as in `looks/rainbow_emergent3.json`. Each look writes its own video and frames folder, so renders of different looks never overwrite each other.
+
+**Moving the masses:** once a sculpture is segmented, each mass can be animated on its own with `motions` (see `add_part_motions` in `animation/build_scene.py`). A motion makes one mass grow along its own axis by a `factor` (it grows away from where it joins the rest, or both ways if it is joined all around), optionally `swing` by an `angle` to one side and back and then the other side and back (`cycles` repeats that), shrink back at `return_sec`, and `repeat` the whole motion. Everything else keeps its shape, and the sculpture is kept resting on the floor. A named `motion_sets` entry in the scene file can be shared by several sculptures so identical copies move in sync.
+
+**Five swingers:** `animation/scene_swingers.json` has five identical copies of the segmented `emergent3` sculpture gliding around the lanes (some spinning each way) while each mass in turn grows to 2-3x and swings 70 degrees twice, in sync across the copies. Lane layout and starting positions were searched so the sculptures stay clear of each other even with their arms extended.
 
 `render_video.py` writes PNG frames to `data/animation/frames_final/` and encodes them with ffmpeg (H.264 MP4). If a long render is interrupted, run the same command again and only the missing frames are rendered. Everything runs locally on the Mac, so rendering has no cloud or GitHub cost.
 
@@ -61,8 +72,8 @@ Use `rotate_x` in `meshes.json` (for example 90) if a mesh imports lying on its 
 
 ### Status and next steps
 
-- Working: scripted mesh creation and stand cleanup (emergent0–emergent4 prepared), scene building, constant-speed path motion, continuous spin, still and video rendering.
-- Next: review the first full render of the five emergent sculptures, then add more sculptures.
+- Working: scripted mesh creation and stand cleanup (emergent0–emergent4 prepared), scene building, lane traffic, continuous spin, skins and saved looks, per-mass segmentation, growth and swing motions, still and video rendering.
+- Next: full render of the five swingers, then segment the other sculptures so they can move mass by mass.
 - Later: HDRI or photo backgrounds, shadow tuning, and a small interface to choose sculptures, skins, backgrounds, paths and speeds from lists and sliders.
 
 ## Pipeline Overview
@@ -232,6 +243,11 @@ sculpture/
 │   ├── meshes.json               ← Per-sculpture video, detail, rotation, stand cut height
 │   ├── prep_mesh.py              ← Blender: clean (debris, stand), normalize, save mesh
 │   ├── make_hdri.py              ← Generates the flowing pale green/blue HDRI background
+│   ├── looks/                    ← Saved skin sets (one JSON per look)
+│   ├── segment_parts.py          ← Splits a sculpture into its masses (neck-based watershed)
+│   ├── parts.json                ← Per-sculpture segmentation settings
+│   ├── traffic.py                ← Lane traffic: sculptures change to the most open lane at lane ends
+│   ├── render_video.py           ← Resumable full render: PNG frames → MP4 with ffmpeg
 │   ├── build_scene.py            ← Blender: build scene from JSON, render still/video
 │   └── scene.json                ← Sculptures, paths, speeds, background, light, camera
 ├── tools/

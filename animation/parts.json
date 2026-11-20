@@ -1,0 +1,12 @@
+{
+    "emergent3": {
+        "num_peaks": 9,
+        "min_distance": 5,
+        "merge": [
+            [
+                5,
+                7
+            ]
+        ]
+    }
+}
