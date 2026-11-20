@@ -1,4 +1,4 @@
-# Sculpture AI
+# Animating Sculpture with AI
 
 This project converts physical sculptures, such as my wood carvings and ceramic sculptures, into digital wireframes that can be animated and rendered as MP4 videos.
 
