@@ -20,9 +20,9 @@ class CameraIntrinsics:
     """Pinhole camera model intrinsics."""
 
     camera_matrix: list[list[float]]  # 3×3
-    dist_coeffs: list[float]          # k1,k2,p1,p2[,k3]
+    dist_coeffs: list[float]  # k1,k2,p1,p2[,k3]
     rms_error: float
-    image_size: tuple[int, int]       # (width, height)
+    image_size: tuple[int, int]  # (width, height)
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -68,7 +68,7 @@ def calibrate_from_images(
 
     # 3-D object points for one board
     objp = np.zeros((cfg.board_cols * cfg.board_rows, 3), dtype=np.float32)
-    objp[:, :2] = np.mgrid[0:cfg.board_cols, 0:cfg.board_rows].T.reshape(-1, 2) * sq
+    objp[:, :2] = np.mgrid[0 : cfg.board_cols, 0 : cfg.board_rows].T.reshape(-1, 2) * sq
 
     obj_pts, img_pts = [], []
     image_size: tuple[int, int] | None = None
@@ -90,14 +90,10 @@ def calibrate_from_images(
         logger.debug("Board detected in calibration image %d", idx)
 
     if len(obj_pts) < 3:
-        raise ValueError(
-            f"Need at least 3 board detections for calibration, got {len(obj_pts)}."
-        )
+        raise ValueError(f"Need at least 3 board detections for calibration, got {len(obj_pts)}.")
 
     assert image_size is not None
-    rms, K, D, _rvecs, _tvecs = cv2.calibrateCamera(
-        obj_pts, img_pts, image_size, None, None
-    )
+    rms, K, D, _rvecs, _tvecs = cv2.calibrateCamera(obj_pts, img_pts, image_size, None, None)
     logger.info("Calibration RMS reprojection error: %.4f px", rms)
 
     return CameraIntrinsics(

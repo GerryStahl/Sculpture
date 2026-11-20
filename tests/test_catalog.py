@@ -1,15 +1,15 @@
 """Tests for sculpture catalog module."""
 
 import json
-from pathlib import Path
 import pickle
 import tempfile
+from pathlib import Path
+
 import pytest
 
 from sculpture.catalog import (
     EditHistory,
     SculptureRecord,
-    build_catalog,
     import_edited_mesh,
     load_catalog,
     save_catalog,

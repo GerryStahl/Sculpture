@@ -7,7 +7,6 @@ import pytest
 
 from sculpture.io.image_io import collect_images, load_image, save_image
 
-
 PHOTOS_DIR = Path(__file__).parents[1] / "photos"
 
 

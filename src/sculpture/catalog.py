@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 import json
 import pickle
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +13,7 @@ from typing import Any
 @dataclass
 class EditHistory:
     """Track provenance of mesh edits."""
+
     timestamp: str  # ISO format UTC
     editor: str  # e.g., "Blender", "Meshmixer"
     source_mesh: str | None  # original mesh path that was edited
@@ -66,7 +67,9 @@ ASSET_KEYS = [
     "wireframe_thumbnails",
 ]
 
-AUTO_FRAME_NOTE = "Frame set not extracted yet; run extract_turntable_frames.py for full per-view set."
+AUTO_FRAME_NOTE = (
+    "Frame set not extracted yet; run extract_turntable_frames.py for full per-view set."
+)
 
 
 def _rel(path: Path, root: Path) -> str:
@@ -80,7 +83,7 @@ def _existing(paths: list[Path], root: Path) -> list[str]:
 def _file_date(path: Path) -> str | None:
     if not path.exists():
         return None
-    dt = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    dt = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
     return dt.date().isoformat()
 
 
@@ -118,7 +121,9 @@ def records_by_id(catalog: dict[str, Any]) -> dict[str, dict[str, Any]]:
     }
 
 
-def _merged_metadata(existing: dict[str, Any] | None, generated: SculptureRecord) -> SculptureRecord:
+def _merged_metadata(
+    existing: dict[str, Any] | None, generated: SculptureRecord
+) -> SculptureRecord:
     if not existing:
         return generated
 
@@ -131,17 +136,18 @@ def _merged_metadata(existing: dict[str, Any] | None, generated: SculptureRecord
     existing_notes = existing.get("notes")
     if existing_notes and existing_notes != AUTO_FRAME_NOTE:
         payload["notes"] = existing_notes
-    
+
     # Preserve asset keys (edited meshes, edit history, thumbnails, masks) from existing records
     for key in ASSET_KEYS:
         if key in existing and existing[key] is not None:
             payload[key] = existing[key]
-    
+
     # Strip any keys from old catalog records that are not in the current dataclass
     import dataclasses
+
     valid_keys = {f.name for f in dataclasses.fields(SculptureRecord)}
     payload = {k: v for k, v in payload.items() if k in valid_keys}
-    
+
     return SculptureRecord(**payload)
 
 
@@ -159,7 +165,9 @@ def build_catalog(
         frames_dir = photos_dir / f"{sid}_frames"
         review_dir = project_root / "data" / "output" / "renders" / f"review_{sid}"
 
-        selected_frames_dir = frames_dir if frames_dir.exists() else (review_dir if review_dir.exists() else None)
+        selected_frames_dir = (
+            frames_dir if frames_dir.exists() else (review_dir if review_dir.exists() else None)
+        )
         frame_files: list[Path] = []
         if selected_frames_dir:
             frame_files = sorted(
@@ -227,16 +235,13 @@ def build_catalog(
             point_clouds=_existing(pcd_candidates, project_root),
             mesh_thumbnails=_existing(mesh_thumb_candidates, project_root),
             wireframe_thumbnails=_existing(wire_thumb_candidates, project_root),
-            notes=(
-                AUTO_FRAME_NOTE
-                if not frame_files else None
-            ),
+            notes=(AUTO_FRAME_NOTE if not frame_files else None),
             critic_description=critics.get(sid),
         )
         records.append(_merged_metadata((existing_records or {}).get(sid), rec))
 
     return {
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "schema_version": "1.0",
         "project_root": str(project_root),
         "sculpture_count": len(records),
@@ -321,7 +326,7 @@ def upsert_sculpture(
         existing["critic_description"] = critic_description
 
     catalog["sculpture_count"] = len(records)
-    catalog["generated_at_utc"] = datetime.now(timezone.utc).isoformat()
+    catalog["generated_at_utc"] = datetime.now(UTC).isoformat()
     return catalog
 
 
@@ -336,7 +341,7 @@ def import_edited_mesh(
     source_mesh: str | None = None,
 ) -> dict[str, Any]:
     """Import a Blender-edited (or otherwise modified) mesh into the catalog.
-    
+
     Args:
         catalog: Catalog dict to update
         project_root: Project root for relative path resolution
@@ -345,42 +350,42 @@ def import_edited_mesh(
         editor: Editor tool name (default: "Blender")
         editor_notes: Optional provenance notes
         source_mesh: Original mesh path that was edited (if known)
-    
+
     Returns:
         Updated catalog dict
-    
+
     Raises:
         FileNotFoundError: If mesh file doesn't exist
         ValueError: If sculpture not found in catalog
     """
     if not mesh_path.exists():
         raise FileNotFoundError(f"Mesh file not found: {mesh_path}")
-    
+
     records = catalog.get("sculptures", [])
     existing = None
     for record in records:
         if record.get("sculpture_id") == sculpture_id:
             existing = record
             break
-    
+
     if existing is None:
         raise ValueError(f"Sculpture not found in catalog: {sculpture_id}")
-    
+
     # Store the mesh as a relative path
     rel_mesh_path = _rel(mesh_path, project_root)
-    
+
     # Ensure edited_meshes list exists
     if "edited_meshes" not in existing:
         existing["edited_meshes"] = []
-    
+
     # Add mesh if not already present
     if rel_mesh_path not in existing["edited_meshes"]:
         existing["edited_meshes"].append(rel_mesh_path)
-    
+
     # Create edit history entry
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     version = len(existing.get("edit_history", [])) + 1
-    
+
     edit_entry = {
         "timestamp": now,
         "editor": editor,
@@ -389,12 +394,11 @@ def import_edited_mesh(
         "editor_notes": editor_notes,
         "version": version,
     }
-    
+
     if "edit_history" not in existing:
         existing["edit_history"] = []
-    
+
     existing["edit_history"].append(edit_entry)
-    
+
     catalog["generated_at_utc"] = now
     return catalog
-

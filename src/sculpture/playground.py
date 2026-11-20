@@ -27,7 +27,6 @@ class ControlPoint:
     strength: float = 0.2
 
 
-
 def load_mesh(path: Path | str) -> o3d.geometry.TriangleMesh:
     """Load a mesh from disk using Open3D."""
     mesh = o3d.io.read_triangle_mesh(str(path))
@@ -37,13 +36,11 @@ def load_mesh(path: Path | str) -> o3d.geometry.TriangleMesh:
     return mesh
 
 
-
 def save_mesh(mesh: o3d.geometry.TriangleMesh, path: Path | str) -> None:
     """Save a mesh to disk."""
     out_path = Path(path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     o3d.io.write_triangle_mesh(str(out_path), mesh)
-
 
 
 def mesh_to_trimesh(mesh: o3d.geometry.TriangleMesh) -> trimesh.Trimesh:
@@ -53,7 +50,6 @@ def mesh_to_trimesh(mesh: o3d.geometry.TriangleMesh) -> trimesh.Trimesh:
     return trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
 
 
-
 def trimesh_to_open3d(mesh: trimesh.Trimesh) -> o3d.geometry.TriangleMesh:
     """Convert a trimesh back to Open3D."""
     o3d_mesh = o3d.geometry.TriangleMesh()
@@ -61,7 +57,6 @@ def trimesh_to_open3d(mesh: trimesh.Trimesh) -> o3d.geometry.TriangleMesh:
     o3d_mesh.triangles = o3d.utility.Vector3iVector(np.asarray(mesh.faces))
     o3d_mesh.compute_vertex_normals()
     return o3d_mesh
-
 
 
 def rotate_mesh(
@@ -76,14 +71,12 @@ def rotate_mesh(
     return rotated
 
 
-
 def scale_mesh(mesh: o3d.geometry.TriangleMesh, factor: float = 1.0) -> o3d.geometry.TriangleMesh:
     """Uniformly scale a mesh about its center."""
     scaled = mesh.clone()
     scaled.scale(factor, center=scaled.get_center())
     scaled.compute_vertex_normals()
     return scaled
-
 
 
 def translate_mesh(
@@ -94,7 +87,6 @@ def translate_mesh(
     translated.translate(offset)
     translated.compute_vertex_normals()
     return translated
-
 
 
 def deform_near_point(
@@ -127,7 +119,6 @@ def deform_near_point(
     return deformed
 
 
-
 def mirror_mesh(mesh: o3d.geometry.TriangleMesh, axis: str = "x") -> o3d.geometry.TriangleMesh:
     """Mirror a mesh across the selected axis."""
     axis = axis.lower()
@@ -147,7 +138,6 @@ def mirror_mesh(mesh: o3d.geometry.TriangleMesh, axis: str = "x") -> o3d.geometr
     return mirrored
 
 
-
 def shear_mesh(
     mesh: o3d.geometry.TriangleMesh,
     shear_xy: float = 0.0,
@@ -165,7 +155,6 @@ def shear_mesh(
     sheared.vertices = o3d.utility.Vector3dVector(vertices)
     sheared.compute_vertex_normals()
     return sheared
-
 
 
 def transform_vertex_subset(
@@ -188,7 +177,6 @@ def transform_vertex_subset(
     return edited
 
 
-
 def compute_bounding_box_info(mesh: o3d.geometry.TriangleMesh) -> dict[str, float]:
     """Return easy-to-read bounding-box measurements for the mesh."""
     bbox = mesh.get_axis_aligned_bounding_box()
@@ -199,7 +187,6 @@ def compute_bounding_box_info(mesh: o3d.geometry.TriangleMesh) -> dict[str, floa
         "depth": float(extent[2]),
         "diagonal": float(np.linalg.norm(extent)),
     }
-
 
 
 def mesh_preview_figure(
@@ -238,7 +225,6 @@ def mesh_preview_figure(
     return fig
 
 
-
 def export_viewer_html(
     mesh: o3d.geometry.TriangleMesh, path: Path | str, title: str = "Sculpture viewer"
 ) -> Path:
@@ -248,7 +234,6 @@ def export_viewer_html(
     fig = mesh_preview_figure(mesh, title=title)
     fig.write_html(str(out_path), include_plotlyjs="cdn", full_html=True)
     return out_path
-
 
 
 def turntable_orbit_frames(

@@ -1,4 +1,5 @@
 """Extract one frame from a video, apply Apple Vision subject mask, save results."""
+
 from __future__ import annotations
 
 import subprocess
@@ -7,7 +8,6 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-
 
 MASK_TOOL = Path(__file__).resolve().parents[1] / "tools" / "mask_subject" / "mask_subject"
 OUT_DIR = Path(__file__).resolve().parents[1] / "data" / "output" / "renders"
@@ -30,7 +30,8 @@ def extract_mid_frame(video_path: Path) -> np.ndarray:
 def apple_mask(input_jpg: Path, output_png: Path) -> None:
     result = subprocess.run(
         [str(MASK_TOOL), str(input_jpg), str(output_png)],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         raise RuntimeError(f"mask_subject failed:\n{result.stderr}")
@@ -39,6 +40,7 @@ def apple_mask(input_jpg: Path, output_png: Path) -> None:
 
 def side_by_side_png(original_bgr: np.ndarray, masked_png: Path) -> Path:
     import cv2 as _cv2
+
     masked_bgra = _cv2.imread(str(masked_png), _cv2.IMREAD_UNCHANGED)
     if masked_bgra is None:
         raise RuntimeError(f"Cannot read masked image: {masked_png}")

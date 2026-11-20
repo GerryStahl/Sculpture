@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 # ── Sub-models ────────────────────────────────────────────────────────────────
 
+
 class PathsConfig(BaseModel):
     photos_dir: Path = Path("photos/")
     data_raw: Path = Path("data/raw/")
@@ -63,6 +64,7 @@ class LoggingConfig(BaseModel):
 
 
 # ── Root config ───────────────────────────────────────────────────────────────
+
 
 class SculptureConfig(BaseModel):
     paths: PathsConfig = Field(default_factory=PathsConfig)

@@ -9,7 +9,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-
 _SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "extract_turntable_frames.py"
 _spec = importlib.util.spec_from_file_location("extract_turntable_frames", _SCRIPT_PATH)
 _extract_module = importlib.util.module_from_spec(_spec)

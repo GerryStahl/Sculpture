@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import cv2
 import numpy as np
 
@@ -27,7 +28,7 @@ for name in sets:
     cols = 4
     pad = 6
     for r in range(0, len(thumbs), cols):
-        row_imgs = thumbs[r:r+cols]
+        row_imgs = thumbs[r : r + cols]
         h = max(x.shape[0] for x in row_imgs)
         fixed = []
         for x in row_imgs:

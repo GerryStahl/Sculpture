@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _alpha_mask_to_rgb(images: list[np.ndarray]) -> list[np.ndarray]:
     """Strip alpha channel; background pixels become white."""
     out = []
@@ -88,7 +89,7 @@ def _read_colmap_points3d_bin(path: Path) -> np.ndarray:
             _rgb = f.read(3)
             _err = f.read(8)
             track_len = struct.unpack("<Q", f.read(8))[0]
-            f.read(8 * track_len)   # skip track (image_id, point2D_idx pairs)
+            f.read(8 * track_len)  # skip track (image_id, point2D_idx pairs)
             pts.append(xyz)
     return np.array(pts, dtype=np.float64)
 
@@ -105,14 +106,14 @@ def _read_colmap_points3d_txt(path: Path) -> np.ndarray:
     return np.array(pts, dtype=np.float64)
 
 
-def _pcd_from_array(pts: np.ndarray, output_dir: Path, filename: str = "point_cloud.ply") -> o3d.geometry.PointCloud:
+def _pcd_from_array(
+    pts: np.ndarray, output_dir: Path, filename: str = "point_cloud.ply"
+) -> o3d.geometry.PointCloud:
     """Convert an Nx3 array to an Open3D point cloud, estimate normals, save."""
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(pts)
     pcd = pcd.voxel_down_sample(voxel_size=0.005)
-    pcd.estimate_normals(
-        search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
-    )
+    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
     try:
         pcd.orient_normals_consistent_tangent_plane(20)
     except RuntimeError as exc:
@@ -127,9 +128,7 @@ def _load_and_save_dense_ply(dense_ply: Path, output_dir: Path) -> o3d.geometry.
     """Load a dense PLY, estimate normals, save canonical point_cloud.ply, return PCD."""
     pcd = o3d.io.read_point_cloud(str(dense_ply))
     pcd = pcd.voxel_down_sample(voxel_size=0.005)
-    pcd.estimate_normals(
-        search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
-    )
+    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
     try:
         pcd.orient_normals_consistent_tangent_plane(20)
     except RuntimeError as exc:
@@ -161,8 +160,7 @@ def _try_openmvs_dense(
     densify_bin = _which_optional(cfg.openmvs_densify_bin)
     if not interface_bin or not densify_bin:
         logger.info(
-            "OpenMVS binaries not available; skipping OpenMVS dense path "
-            "(need %s and %s)",
+            "OpenMVS binaries not available; skipping OpenMVS dense path (need %s and %s)",
             cfg.openmvs_interface_colmap_bin,
             cfg.openmvs_densify_bin,
         )
@@ -175,30 +173,48 @@ def _try_openmvs_dense(
     dense_ply = openmvs_dir / "scene_dense.ply"
 
     logger.info("OpenMVS: preparing undistorted COLMAP scene")
-    _run([
-        colmap, "image_undistorter",
-        "--image_path", str(img_dir),
-        "--input_path", str(sparse_model_dir),
-        "--output_path", str(dense_dir),
-        "--output_type", "COLMAP",
-    ], "image_undistorter")
+    _run(
+        [
+            colmap,
+            "image_undistorter",
+            "--image_path",
+            str(img_dir),
+            "--input_path",
+            str(sparse_model_dir),
+            "--output_path",
+            str(dense_dir),
+            "--output_type",
+            "COLMAP",
+        ],
+        "image_undistorter",
+    )
 
     logger.info("OpenMVS: importing COLMAP scene")
-    _run([
-        interface_bin,
-        "-i", str(dense_dir),
-        "-o", str(scene_mvs),
-        "--image-folder", str(dense_dir / "images"),
-        "-w", str(openmvs_dir),
-    ], "openmvs_interface_colmap")
+    _run(
+        [
+            interface_bin,
+            "-i",
+            str(dense_dir),
+            "-o",
+            str(scene_mvs),
+            "--image-folder",
+            str(dense_dir / "images"),
+            "-w",
+            str(openmvs_dir),
+        ],
+        "openmvs_interface_colmap",
+    )
 
     logger.info("OpenMVS: densifying point cloud")
     densify_cmd = [
         densify_bin,
         str(scene_mvs),
-        "-o", str(dense_scene_mvs),
-        "-w", str(openmvs_dir),
-        "--resolution-level", str(cfg.openmvs_resolution_level),
+        "-o",
+        str(dense_scene_mvs),
+        "-w",
+        str(openmvs_dir),
+        "--resolution-level",
+        str(cfg.openmvs_resolution_level),
     ]
     if cfg.openmvs_number_views > 0:
         densify_cmd.extend(["--number-views", str(cfg.openmvs_number_views)])
@@ -222,23 +238,43 @@ def _try_colmap_dense(
     """Attempt COLMAP dense stereo; return point cloud if successful."""
     dense_ply = dense_dir / "fused.ply"
     logger.info("COLMAP: dense MVS (patch_match_stereo + stereo_fusion)")
-    _run([
-        colmap, "image_undistorter",
-        "--image_path", str(img_dir),
-        "--input_path", str(sparse_model_dir),
-        "--output_path", str(dense_dir),
-        "--output_type", "COLMAP",
-    ], "image_undistorter")
-    _run([
-        colmap, "patch_match_stereo",
-        "--workspace_path", str(dense_dir),
-        "--PatchMatchStereo.gpu_index", "-1",
-    ], "patch_match_stereo")
-    _run([
-        colmap, "stereo_fusion",
-        "--workspace_path", str(dense_dir),
-        "--output_path", str(dense_ply),
-    ], "stereo_fusion")
+    _run(
+        [
+            colmap,
+            "image_undistorter",
+            "--image_path",
+            str(img_dir),
+            "--input_path",
+            str(sparse_model_dir),
+            "--output_path",
+            str(dense_dir),
+            "--output_type",
+            "COLMAP",
+        ],
+        "image_undistorter",
+    )
+    _run(
+        [
+            colmap,
+            "patch_match_stereo",
+            "--workspace_path",
+            str(dense_dir),
+            "--PatchMatchStereo.gpu_index",
+            "-1",
+        ],
+        "patch_match_stereo",
+    )
+    _run(
+        [
+            colmap,
+            "stereo_fusion",
+            "--workspace_path",
+            str(dense_dir),
+            "--output_path",
+            str(dense_ply),
+        ],
+        "stereo_fusion",
+    )
 
     if dense_ply.exists():
         logger.info("COLMAP: loading dense point cloud %s", dense_ply)
@@ -247,6 +283,7 @@ def _try_colmap_dense(
 
 
 # ── COLMAP reconstruction ─────────────────────────────────────────────────────
+
 
 def reconstruct_colmap(
     image_paths: list[Path],
@@ -294,35 +331,61 @@ def reconstruct_colmap(
 
     # ── 1. Feature extraction ────────────────────────────────────────────────
     logger.info("COLMAP: feature extraction (%d images)", len(image_paths))
-    _run_with_gpu_fallback([
-        colmap, "feature_extractor",
-        "--database_path", str(db),
-        "--image_path", str(img_dir),
-        "--ImageReader.single_camera", "1",   # assume one camera (same intrinsics)
-    ], "--FeatureExtraction.use_gpu", "feature_extractor")
+    _run_with_gpu_fallback(
+        [
+            colmap,
+            "feature_extractor",
+            "--database_path",
+            str(db),
+            "--image_path",
+            str(img_dir),
+            "--ImageReader.single_camera",
+            "1",  # assume one camera (same intrinsics)
+        ],
+        "--FeatureExtraction.use_gpu",
+        "feature_extractor",
+    )
 
     # ── 2. Sequential matching (turntable / video-frame sequence) ────────────
     overlap = 30 if len(image_paths) >= 100 else 10
     logger.info("COLMAP: sequential matching")
-    _run_with_gpu_fallback([
-        colmap, "sequential_matcher",
-        "--database_path", str(db),
-        "--SequentialMatching.overlap", str(overlap),
-    ], "--FeatureMatching.use_gpu", "sequential_matcher")
+    _run_with_gpu_fallback(
+        [
+            colmap,
+            "sequential_matcher",
+            "--database_path",
+            str(db),
+            "--SequentialMatching.overlap",
+            str(overlap),
+        ],
+        "--FeatureMatching.use_gpu",
+        "sequential_matcher",
+    )
 
     # ── 3. Sparse reconstruction (mapper / bundle adjustment) ────────────────
     logger.info("COLMAP: sparse reconstruction (mapper)")
-    _run([
-        colmap, "mapper",
-        "--database_path", str(db),
-        "--image_path", str(img_dir),
-        "--output_path", str(sparse_dir),
-        "--Mapper.init_min_num_inliers", "15",
-        "--Mapper.abs_pose_min_num_inliers", "10",
-    ], "mapper")
+    _run(
+        [
+            colmap,
+            "mapper",
+            "--database_path",
+            str(db),
+            "--image_path",
+            str(img_dir),
+            "--output_path",
+            str(sparse_dir),
+            "--Mapper.init_min_num_inliers",
+            "15",
+            "--Mapper.abs_pose_min_num_inliers",
+            "10",
+        ],
+        "mapper",
+    )
 
     # Find the largest reconstruction sub-folder (0, 1, …)
-    recon_dirs = sorted(sparse_dir.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else 999)
+    recon_dirs = sorted(
+        sparse_dir.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else 999
+    )
     if not recon_dirs:
         raise RuntimeError(
             "COLMAP mapper produced no reconstruction. "
@@ -340,11 +403,15 @@ def reconstruct_colmap(
             dense_result: o3d.geometry.PointCloud | None = None
             if backend in ("auto", "openmvs"):
                 try:
-                    dense_result = _try_openmvs_dense(cfg, colmap, best, img_dir, dense_dir, output_dir)
+                    dense_result = _try_openmvs_dense(
+                        cfg, colmap, best, img_dir, dense_dir, output_dir
+                    )
                 except RuntimeError as exc:
                     logger.warning("OpenMVS dense failed (%s)", exc)
                     if backend == "openmvs":
-                        logger.warning("Configured dense backend is openmvs; falling back to sparse.")
+                        logger.warning(
+                            "Configured dense backend is openmvs; falling back to sparse."
+                        )
             if dense_result is None and backend in ("auto", "colmap"):
                 try:
                     dense_result = _try_colmap_dense(colmap, best, img_dir, dense_dir, output_dir)
@@ -379,6 +446,7 @@ def reconstruct_colmap(
 
 
 # ── Legacy ORB fallback ───────────────────────────────────────────────────────
+
 
 def reconstruct_orb_fallback(
     images: list[np.ndarray],
@@ -420,6 +488,7 @@ def reconstruct_orb_fallback(
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
+
 def reconstruct(
     images: list[np.ndarray],
     cfg: ReconstructionConfig,
@@ -441,7 +510,8 @@ def reconstruct(
         if not shutil.which(colmap_bin):
             logger.warning(
                 "COLMAP binary '%s' not found; falling back to ORB heuristic. "
-                "Install with: brew install colmap", colmap_bin
+                "Install with: brew install colmap",
+                colmap_bin,
             )
             return reconstruct_orb_fallback(images, output_dir)
         pcd = reconstruct_colmap(image_paths, cfg, output_dir)

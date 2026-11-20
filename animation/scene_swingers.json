@@ -32,7 +32,7 @@
       "height": 3.5,
       "spin_period_sec": 9.33,
       "spin_direction": 1,
-      "traffic": { "lane": 5, "direction": -1, "start": 0.42, "speed": 1.54 },
+      "traffic": { "lane": 4, "direction": -1, "start": 0.48, "speed": 1.11 },
       "motions": "swing"
     },
     {
@@ -42,7 +42,7 @@
       "height": 3.5,
       "spin_period_sec": 6.67,
       "spin_direction": -1,
-      "traffic": { "lane": 1, "direction": 1, "start": 0.42, "speed": 1.75 },
+      "traffic": { "lane": 1, "direction": 1, "start": 0.99, "speed": 1.23 },
       "motions": "swing"
     },
     {
@@ -52,7 +52,7 @@
       "height": 3.5,
       "spin_period_sec": 8.0,
       "spin_direction": 1,
-      "traffic": { "lane": 6, "direction": 1, "start": 0.7, "speed": 1.28 },
+      "traffic": { "lane": 2, "direction": -1, "start": 0.88, "speed": 1.1 },
       "motions": "swing"
     },
     {
@@ -62,7 +62,7 @@
       "height": 3.5,
       "spin_period_sec": 5.33,
       "spin_direction": -1,
-      "traffic": { "lane": 2, "direction": -1, "start": 0.19, "speed": 1.33 },
+      "traffic": { "lane": 6, "direction": 1, "start": 0.99, "speed": 1.05 },
       "motions": "swing"
     },
     {
@@ -72,19 +72,19 @@
       "height": 3.5,
       "spin_period_sec": 10.67,
       "spin_direction": 1,
-      "traffic": { "lane": 3, "direction": -1, "start": 0.26, "speed": 1.02 },
+      "traffic": { "lane": 0, "direction": 1, "start": 0.75, "speed": 1.01 },
       "motions": "swing"
     }
   ],
   "traffic": {
     "lanes": [
-      { "y": 12, "half": 12.3 },
-      { "y": 8, "half": 11.1 },
-      { "y": 4, "half": 9.9 },
-      { "y": 0, "half": 8.7 },
-      { "y": -4, "half": 7.5 },
-      { "y": -8, "half": 6.3 },
-      { "y": -12, "half": 5.1 }
+      { "y": 12, "half": 11.1 },
+      { "y": 8, "half": 10.0 },
+      { "y": 4, "half": 8.9 },
+      { "y": 0, "half": 7.8 },
+      { "y": -4, "half": 6.8 },
+      { "y": -8, "half": 5.7 },
+      { "y": -12, "half": 4.6 }
     ],
     "clearance_scale": 1.5
   },

@@ -95,8 +95,12 @@ def run_pipeline(
             logger.info("  Preprocessing %s …", src_path.name)
             processed_img = preprocess_image(img, cfg.preprocessing)
             out_path = proc_dir / f"{src_path.stem}_processed.png"
-            save_image(processed_img[:, :, :3] if processed_img.ndim == 3
-                       and processed_img.shape[2] == 4 else processed_img, out_path)
+            save_image(
+                processed_img[:, :, :3]
+                if processed_img.ndim == 3 and processed_img.shape[2] == 4
+                else processed_img,
+                out_path,
+            )
             processed.append(processed_img)
 
     # ── 3. Reconstruct point cloud ──────────────────────────────────────────
@@ -132,10 +136,12 @@ def run_pipeline(
 
     logger.info("Pipeline complete.")
     logger.info("  Point cloud : %d points", len(pcd.points))
-    logger.info("  Mesh        : %d vertices, %d triangles",
-                len(mesh.vertices), len(mesh.triangles))
-    logger.info("  Wireframe   : %d nodes, %d edges",
-                wf_graph.number_of_nodes(), wf_graph.number_of_edges())
+    logger.info(
+        "  Mesh        : %d vertices, %d triangles", len(mesh.vertices), len(mesh.triangles)
+    )
+    logger.info(
+        "  Wireframe   : %d nodes, %d edges", wf_graph.number_of_nodes(), wf_graph.number_of_edges()
+    )
 
     return {
         "point_cloud": pcd,

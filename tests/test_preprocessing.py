@@ -1,9 +1,7 @@
 """Tests for image preprocessing."""
 
 import numpy as np
-import pytest
 
-from sculpture.config import PreprocessingConfig
 from sculpture.preprocessing import denoise, remove_background_grabcut, resize_to_max
 
 

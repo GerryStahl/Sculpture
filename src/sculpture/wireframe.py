@@ -34,8 +34,7 @@ def extract_feature_edges(
     edge_to_tris: dict[tuple[int, int], list[int]] = {}
     for ti, tri in enumerate(tris):
         for i in range(3):
-            e = (int(min(tri[i], tri[(i + 1) % 3])),
-                 int(max(tri[i], tri[(i + 1) % 3])))
+            e = (int(min(tri[i], tri[(i + 1) % 3])), int(max(tri[i], tri[(i + 1) % 3])))
             edge_to_tris.setdefault(e, []).append(ti)
 
     feature_edges: list[tuple[int, int]] = []
@@ -62,8 +61,7 @@ def filter_short_edges(
     pts = vertices
     diag = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0)))
     min_len = diag * min_frac
-    kept = [e for e in edges
-            if np.linalg.norm(pts[e[0]] - pts[e[1]]) >= min_len]
+    kept = [e for e in edges if np.linalg.norm(pts[e[0]] - pts[e[1]]) >= min_len]
     logger.debug("Edges after length filter: %d / %d", len(kept), len(edges))
     return kept
 
@@ -82,8 +80,7 @@ def build_wireframe_graph(
     # Keep only nodes that appear in at least one edge
     isolates = list(nx.isolates(G))
     G.remove_nodes_from(isolates)
-    logger.info("Wireframe graph: %d nodes, %d edges",
-                G.number_of_nodes(), G.number_of_edges())
+    logger.info("Wireframe graph: %d nodes, %d edges", G.number_of_nodes(), G.number_of_edges())
     return G
 
 
@@ -111,8 +108,9 @@ def export_wireframe_json(
     path.parent.mkdir(parents=True, exist_ok=True)
     data: dict[str, Any] = {
         "nodes": [{"id": n, "pos": d["pos"]} for n, d in graph.nodes(data=True)],
-        "edges": [{"u": u, "v": v, "length": d.get("length", 0)}
-                  for u, v, d in graph.edges(data=True)],
+        "edges": [
+            {"u": u, "v": v, "length": d.get("length", 0)} for u, v, d in graph.edges(data=True)
+        ],
     }
     with path.open("w") as fh:
         json.dump(data, fh, indent=2)
@@ -126,12 +124,12 @@ def extract_wireframe(
 ) -> nx.Graph:
     """Full wireframe extraction pipeline."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Guard against degenerate meshes
     if len(mesh.vertices) == 0 or len(mesh.triangles) == 0:
         logger.warning("Mesh is degenerate; returning empty wireframe graph")
         return nx.Graph()
-    
+
     vertices = np.asarray(mesh.vertices)
 
     edges = extract_feature_edges(mesh, cfg.feature_angle_deg)

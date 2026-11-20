@@ -1,23 +1,40 @@
 """Tests for wireframe extraction (pure-Python logic, no Open3D required)."""
 
 import numpy as np
-import pytest
 
 from sculpture.wireframe import build_wireframe_graph, filter_short_edges
 
 
 def _make_unit_cube_vertices() -> np.ndarray:
-    return np.array([
-        [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
-        [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1],
-    ], dtype=np.float64)
+    return np.array(
+        [
+            [0, 0, 0],
+            [1, 0, 0],
+            [1, 1, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+            [1, 0, 1],
+            [1, 1, 1],
+            [0, 1, 1],
+        ],
+        dtype=np.float64,
+    )
 
 
 def _cube_edges() -> list[tuple[int, int]]:
     return [
-        (0, 1), (1, 2), (2, 3), (3, 0),
-        (4, 5), (5, 6), (6, 7), (7, 4),
-        (0, 4), (1, 5), (2, 6), (3, 7),
+        (0, 1),
+        (1, 2),
+        (2, 3),
+        (3, 0),
+        (4, 5),
+        (5, 6),
+        (6, 7),
+        (7, 4),
+        (0, 4),
+        (1, 5),
+        (2, 6),
+        (3, 7),
     ]
 
 

@@ -42,3 +42,6 @@ photos/*_frames*/
 
 # Compiled Object Capture CLI
 tools/photogrammetry/photogrammetry
+
+# Local pyenv setting
+.python-version

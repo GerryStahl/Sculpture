@@ -43,8 +43,7 @@ def remove_bg_and_save(video_path: Path, out_dir: Path, cfg: PreprocessingConfig
         alpha = out[:, :, 3:4].astype(np.float32) / 255.0
         white = np.full_like(out[:, :, :3], 255)
         removed = (
-            out[:, :, :3].astype(np.float32) * alpha
-            + white.astype(np.float32) * (1.0 - alpha)
+            out[:, :, :3].astype(np.float32) * alpha + white.astype(np.float32) * (1.0 - alpha)
         ).astype(np.uint8)
     else:
         removed = out

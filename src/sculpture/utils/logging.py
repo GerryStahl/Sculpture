@@ -16,6 +16,10 @@ def setup_logging(level: str = "INFO", log_file: Path | None = None) -> logging.
         log_file.parent.mkdir(parents=True, exist_ok=True)
         handlers.append(logging.FileHandler(log_file))
 
-    logging.basicConfig(level=getattr(logging, level.upper(), logging.INFO),
-                        format=fmt, handlers=handlers, force=True)
+    logging.basicConfig(
+        level=getattr(logging, level.upper(), logging.INFO),
+        format=fmt,
+        handlers=handlers,
+        force=True,
+    )
     return logging.getLogger("sculpture")

@@ -10,7 +10,9 @@ from sculpture.catalog import build_catalog, save_catalog
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build sculpture catalog files.")
-    parser.add_argument("--photos", type=Path, default=Path("photos"), help="Photos/video directory")
+    parser.add_argument(
+        "--photos", type=Path, default=Path("photos"), help="Photos/video directory"
+    )
     parser.add_argument(
         "--out",
         type=Path,
@@ -26,7 +28,8 @@ def main() -> None:
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parents[1]
-    photos_dir = (project_root / args.photos).resolve() if not args.photos.is_absolute() else args.photos
+    photos_dir = args.photos if args.photos.is_absolute() else (project_root / args.photos)
+    photos_dir = photos_dir.resolve()
     out_dir = (project_root / args.out).resolve() if not args.out.is_absolute() else args.out
 
     catalog = build_catalog(

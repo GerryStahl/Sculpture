@@ -65,12 +65,12 @@ def render_mesh_thumbnail(
         vis.scene.scene.enable_sun_light(True)
         vis.scene.scene.set_sun_light(
             [0.5, -0.7, -0.5],  # direction
-            [1.0, 0.95, 0.9],   # colour (warm white)
-            80_000,             # intensity
+            [1.0, 0.95, 0.9],  # colour (warm white)
+            80_000,  # intensity
         )
 
         vis.setup_camera(
-            60.0,    # fov_deg
+            60.0,  # fov_deg
             center,
             eye,
             up,
@@ -107,12 +107,10 @@ def _mesh_thumbnail_fallback(
         # Isometric-ish projection: rotate ~30° then project XY
         theta = np.radians(30)
         phi = np.radians(25)
-        Ry = np.array([[np.cos(theta), 0, np.sin(theta)],
-                        [0, 1, 0],
-                        [-np.sin(theta), 0, np.cos(theta)]])
-        Rx = np.array([[1, 0, 0],
-                        [0, np.cos(phi), -np.sin(phi)],
-                        [0, np.sin(phi), np.cos(phi)]])
+        Ry = np.array(
+            [[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]]
+        )
+        Rx = np.array([[1, 0, 0], [0, np.cos(phi), -np.sin(phi)], [0, np.sin(phi), np.cos(phi)]])
         pts_rot = (pts - pts.mean(axis=0)) @ Ry.T @ Rx.T
 
         fig, ax = plt.subplots(figsize=(size / 100, size / 100), dpi=100)
@@ -123,8 +121,7 @@ def _mesh_thumbnail_fallback(
         ax.axis("off")
         fig.tight_layout(pad=0)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(str(out_path), dpi=100, bbox_inches="tight",
-                    facecolor=fig.get_facecolor())
+        fig.savefig(str(out_path), dpi=100, bbox_inches="tight", facecolor=fig.get_facecolor())
         plt.close(fig)
         logger.info("Mesh thumbnail (fallback) → %s", out_path)
         return out_path
@@ -160,9 +157,7 @@ def render_wireframe_thumbnail(
                 if not tok:
                     continue
                 if tok[0] == "v" and len(tok) >= 4:
-                    verts.append(np.array([float(tok[1]),
-                                           float(tok[2]),
-                                           float(tok[3])]))
+                    verts.append(np.array([float(tok[1]), float(tok[2]), float(tok[3])]))
                 elif tok[0] == "l":
                     # OBJ line indices are 1-based
                     lines.append([int(i) - 1 for i in tok[1:]])
@@ -176,12 +171,10 @@ def render_wireframe_thumbnail(
         # Isometric-ish rotation matching the mesh fallback
         theta = np.radians(30)
         phi = np.radians(25)
-        Ry = np.array([[np.cos(theta), 0, np.sin(theta)],
-                        [0, 1, 0],
-                        [-np.sin(theta), 0, np.cos(theta)]])
-        Rx = np.array([[1, 0, 0],
-                        [0, np.cos(phi), -np.sin(phi)],
-                        [0, np.sin(phi), np.cos(phi)]])
+        Ry = np.array(
+            [[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]]
+        )
+        Rx = np.array([[1, 0, 0], [0, np.cos(phi), -np.sin(phi)], [0, np.sin(phi), np.cos(phi)]])
         pts_rot = (pts - pts.mean(axis=0)) @ Ry.T @ Rx.T
 
         segments = []
@@ -203,8 +196,7 @@ def render_wireframe_thumbnail(
         ax.axis("off")
         fig.tight_layout(pad=0)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(str(out_path), dpi=100, bbox_inches="tight",
-                    facecolor=fig.get_facecolor())
+        fig.savefig(str(out_path), dpi=100, bbox_inches="tight", facecolor=fig.get_facecolor())
         plt.close(fig)
         logger.info("Wireframe thumbnail → %s", out_path)
         return out_path

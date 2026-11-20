@@ -6,8 +6,9 @@ import numpy as np
 from sculpture.config import PreprocessingConfig
 from sculpture.preprocessing import preprocess_image
 
-frame_path = Path("/Users/GStahl2/AI/sculpture/photos/birdinspace_frames/birdinspace_15_frame000676.jpg")
-out_dir = Path("/Users/GStahl2/AI/sculpture/data/output/renders")
+ROOT = Path(__file__).resolve().parents[1]
+frame_path = ROOT / "photos" / "birdinspace_frames" / "birdinspace_15_frame000676.jpg"
+out_dir = ROOT / "data" / "output" / "renders"
 out_dir.mkdir(parents=True, exist_ok=True)
 
 bgr = cv2.imread(str(frame_path), cv2.IMREAD_COLOR)
@@ -21,8 +22,7 @@ if out.ndim == 3 and out.shape[2] == 4:
     alpha = out[:, :, 3:4].astype(np.float32) / 255.0
     white = np.full_like(out[:, :, :3], 255)
     removed = (
-        out[:, :, :3].astype(np.float32) * alpha
-        + white.astype(np.float32) * (1.0 - alpha)
+        out[:, :, :3].astype(np.float32) * alpha + white.astype(np.float32) * (1.0 - alpha)
     ).astype(np.uint8)
 else:
     removed = out

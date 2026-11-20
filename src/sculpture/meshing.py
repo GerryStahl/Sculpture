@@ -22,9 +22,7 @@ def pcd_to_mesh_poisson(
         pcd.estimate_normals()
         pcd.orient_normals_consistent_tangent_plane(10)
 
-    mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
-        pcd, depth=depth
-    )
+    mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=depth)
     # Remove low-density vertices (background / outlier artifacts)
     d = np.asarray(densities)
     if len(d) > 0:
@@ -33,8 +31,7 @@ def pcd_to_mesh_poisson(
     mesh.remove_degenerate_triangles()
     mesh.remove_duplicated_triangles()
     mesh.remove_non_manifold_edges()
-    logger.info("Poisson mesh: %d vertices, %d triangles",
-                len(mesh.vertices), len(mesh.triangles))
+    logger.info("Poisson mesh: %d vertices, %d triangles", len(mesh.vertices), len(mesh.triangles))
     return mesh
 
 
@@ -53,8 +50,7 @@ def pcd_to_mesh_ball_pivot(
     mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
         pcd, o3d.utility.DoubleVector(radii)
     )
-    logger.info("BPA mesh: %d vertices, %d triangles",
-                len(mesh.vertices), len(mesh.triangles))
+    logger.info("BPA mesh: %d vertices, %d triangles", len(mesh.vertices), len(mesh.triangles))
     return mesh
 
 
@@ -64,8 +60,9 @@ def pcd_to_mesh_alpha(
 ) -> o3d.geometry.TriangleMesh:
     """Alpha-shape surface reconstruction."""
     mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
-    logger.info("Alpha-shape mesh: %d vertices, %d triangles",
-                len(mesh.vertices), len(mesh.triangles))
+    logger.info(
+        "Alpha-shape mesh: %d vertices, %d triangles", len(mesh.vertices), len(mesh.triangles)
+    )
     return mesh
 
 

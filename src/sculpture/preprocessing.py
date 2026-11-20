@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -13,7 +12,7 @@ import numpy as np
 
 from sculpture.config import PreprocessingConfig
 
-# Locate mask_subject binary relative to project root (parents[2] from src/sculpture/preprocessing.py)
+# mask_subject binary, relative to the project root (parents[2] of this file)
 _MASK_TOOL = Path(__file__).resolve().parents[2] / "tools" / "mask_subject" / "mask_subject"
 
 logger = logging.getLogger(__name__)
@@ -50,8 +49,7 @@ def remove_background_grabcut(image: np.ndarray, iterations: int = 5) -> np.ndar
     bgd = np.zeros((1, 65), dtype=np.float64)
     fgd = np.zeros((1, 65), dtype=np.float64)
     cv2.grabCut(image, mask, rect, bgd, fgd, iterations, cv2.GC_INIT_WITH_RECT)
-    fg_mask = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD),
-                       255, 0).astype(np.uint8)
+    fg_mask = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
     rgba = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
     rgba[:, :, 3] = fg_mask
     logger.debug("GrabCut background removal applied.")
@@ -75,7 +73,8 @@ def remove_background_apple_vision(image: np.ndarray) -> np.ndarray:
         cv2.imwrite(str(inp), image)
         result = subprocess.run(
             [str(_MASK_TOOL), str(inp), str(out)],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if result.returncode != 0:
             raise RuntimeError(f"mask_subject failed: {result.stderr.strip()}")
@@ -92,6 +91,7 @@ def remove_background_rembg(image: np.ndarray) -> np.ndarray:
     try:
         from PIL import Image
         from rembg import remove  # type: ignore[import]
+
         pil_in = Image.fromarray(image)
         pil_out = remove(pil_in)
         return np.asarray(pil_out, dtype=np.uint8)

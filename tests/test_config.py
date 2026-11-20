@@ -1,9 +1,5 @@
 """Tests for config loading."""
 
-from pathlib import Path
-
-import pytest
-
 from sculpture.config import SculptureConfig, load_config
 
 
