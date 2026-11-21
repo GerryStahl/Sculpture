@@ -3,9 +3,9 @@
 This project converts physical sculptures, such as my wood carvings and ceramic sculptures, into digital wireframes that can be animated and rendered as MP4 videos.
 
 The initial product is a set of videos that are displayed on my website at: https://gerrystahl.net/sculpture/animation . They feature 5 carvings from Chatham swamp maple wood in my "emergents" series. 
-  video 1: The 5 carvings rotate slowly as they glide back and forth across the screen.
-  video 2: The 5 carvings are transformed with metallic skins and they glide in more complex paths.
-  video 3: One carving is divided into several distinct forms, each colored a different primary color; the parts grow longer and swing left and right over time. Five copies of the same figure rotate and glide as in video 2.
+-  video 1: The 5 carvings rotate slowly as they glide back and forth across the screen.
+-  video 2: The 5 carvings are transformed with metallic skins and they glide in more complex paths.
+-  video 3: One carving is divided into several distinct forms, each colored a different primary color; the parts grow longer and swing left and right over time. Five copies of the same figure rotate and glide as in video 2.
 
 The project includes an end-to-end Python pipeline for reconstructing 3-D wireframe models of sculptures from video or multi-view image sequences. The following documentation describes all the steps that are supported and the structures for setting the many possible parameters for skins, movements, etc.
 
